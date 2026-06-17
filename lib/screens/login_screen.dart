@@ -54,13 +54,14 @@ class _LoginScreenState extends State<LoginScreen> {
         String name = user['NAME'] ?? "";
         String email = user['EMAIL'] ?? "";
         String empId = user['EMP_ID']?.toString() ?? "";
-        String logId = user['log_id']?.toString() ?? "";
+        String logId = user['LOG_ID']?.toString() ?? "";
 
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('username', name);
         await prefs.setString('email', email);
         await prefs.setString('emp_id', empId);
         await prefs.setString('log_id', logId);
+        print("SAVED LOG ID: $logId");
         await prefs.setString('role', user['ROLE'] ?? "");
         await prefs.setString('group', user['GROUP_NAME'] ?? "");
 

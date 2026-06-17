@@ -5,6 +5,8 @@ import 'change_password_screen.dart';
 import 'profile_screen.dart';
 import 'apply_tour_screen.dart';
 import 'my_tour_list_screen.dart';
+import 'action_list_screen.dart';
+import 'employee_tour_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String name;
@@ -98,6 +100,34 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
 
       buildCard(
+  icon: Icons.check_circle,
+  title: "Action List",
+  color: Colors.red,
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ActionListScreen(),
+      ),
+    );
+  },
+),
+
+buildCard(
+  icon: Icons.groups,
+  title: "Employee Tour List",
+  color: Colors.amber,
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const EmployeeTourListScreen(),
+      ),
+    );
+  },
+),
+
+      buildCard(
         icon: Icons.person,
         title: "Profile",
         color: Colors.orange,
@@ -166,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // ✅ MY TOUR ADDED
             ListTile(
               leading: const Icon(Icons.list_alt),
-              title: const Text("My Tour"),
+              title: const Text("My Tour List"),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -178,6 +208,37 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
+            //action list
+            ListTile(
+  leading: const Icon(Icons.check_circle),
+  title: const Text("Action List"),
+  onTap: () {
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ActionListScreen(),
+      ),
+    );
+  },
+),
+
+// employee tour list
+
+ListTile(
+  leading: const Icon(Icons.groups),
+  title: const Text("Employee Tour List"),
+  onTap: () {
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const EmployeeTourListScreen(),
+      ),
+    );
+  },
+),
+//profile
             ListTile(
               leading: const Icon(Icons.person),
               title: const Text("Profile"),
@@ -191,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-
+//change password
             ListTile(
               leading: const Icon(Icons.key),
               title: const Text("Change Password"),
@@ -261,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 15,
                   mainAxisSpacing: 15,
-                  childAspectRatio: 2.5,
+                  childAspectRatio: 1.8,
                 ),
                 itemBuilder: (context, index) {
                   return cards[index];
