@@ -51,16 +51,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
         var user = response['user'];
 
+        print("USER OBJECT = $user");
+        print("USER LOG ID = ${user['log_id']}");
+        print("USER LOG_ID = ${user['LOG_ID']}");
+
         String name = user['NAME'] ?? "";
         String email = user['EMAIL'] ?? "";
         String empId = user['EMP_ID']?.toString() ?? "";
         String logId = user['log_id']?.toString() ?? "";
-
+        
+        print("SAVED LOG ID = ${prefs.getString('log_id')}");
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('username', name);
         await prefs.setString('email', email);
         await prefs.setString('emp_id', empId);
         await prefs.setString('log_id', logId);
+        print("SAVED LOG ID: $logId");
         await prefs.setString('role', user['ROLE'] ?? "");
         await prefs.setString('group', user['GROUP_NAME'] ?? "");
 
