@@ -78,6 +78,8 @@ List<String> vehicleTypes = [
 
 final vehicleRemarksController =
     TextEditingController();
+final otherJourneyController =
+    TextEditingController();
 
 bool showAdvance = false;
 
@@ -309,6 +311,8 @@ journeyList.add({
 
   "vehicleRemarks":
       vehicleRemarksController.text,
+      
+  "otherJourney": otherJourneyController.text,
 
   "remarks": remarksController.text,
 
@@ -319,6 +323,12 @@ journeyList.add({
 
     selectedJourneyMode = null;
     startDate = null;
+  
+  vehicleRemarksController.clear();
+
+  otherJourneyController.clear();
+
+  selectedVehicleType = null;
 
   });
 }
@@ -767,8 +777,8 @@ DropdownButtonFormField<String>(
     );
   }).toList(),
 ////////
-
 onChanged: (value) {
+
   setState(() {
 
     selectedJourneyMode = value;
@@ -776,12 +786,18 @@ onChanged: (value) {
     if (value != "Taxi") {
 
       selectedVehicleType = null;
-
       vehicleRemarksController.clear();
 
     }
 
+    if (value != "Other") {
+
+      otherJourneyController.clear();
+
+    }
+
   });
+
 },
 ),
 if (selectedJourneyMode == null)
@@ -846,6 +862,16 @@ if (selectedJourneyMode == "Taxi") ...[
     vehicleRemarksController,
   ),
 ],
+if (selectedJourneyMode == "Other") ...[
+
+  const SizedBox(height: 15),
+
+  buildInput(
+    "Please Specify Other Journey Mode",
+    otherJourneyController,
+  ),
+
+],
 
 buildInput(
   "Remarks",
@@ -892,7 +918,7 @@ ListView.builder(
       ),
     );
   },
-),
+),  
 
             // ================= ADVANCE =================
 
