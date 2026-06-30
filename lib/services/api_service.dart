@@ -321,4 +321,103 @@ getTourDropdownData() async {
 
   return null;
 }
+// ================= SUBMIT TOUR API =================
+
+static Future<Map<String, dynamic>?> submitTour(
+    Map<String, dynamic> body,
+) async {
+
+  try {
+
+    var url = Uri.parse(
+      "http://192.168.1.99:8090/prsc_ta/inserttourApi",
+    );
+
+    var request = http.MultipartRequest(
+      "POST",
+      url,
+    );
+
+    body.forEach((key, value) {
+
+  if (key == "journey_details") {
+
+    request.fields[key] = jsonEncode(value);
+
+  } else {
+
+    request.fields[key] = value.toString();
+
+  }
+
+});
+
+    var response = await request.send();
+
+    var res = await response.stream.bytesToString();
+
+    print("SUBMIT TOUR STATUS : ${response.statusCode}");
+
+    print("SUBMIT TOUR RESPONSE : $res");
+
+    if (response.statusCode == 200) {
+
+      return jsonDecode(res);
+
+    }
+
+  } catch (e) {
+
+    print("SUBMIT TOUR ERROR : $e");
+
+  }
+
+  return null;
+}
+//================ MY TOUR LIST API =================//
+
+//================ MY TOUR LIST API =================//
+
+  static Future<Map<String, dynamic>?> getMyTourList() async {
+
+    try {
+
+      final prefs = await SharedPreferences.getInstance();
+
+      String logId = prefs.getString("log_id") ?? "";
+
+      print("MY TOUR LIST LOG ID : $logId");
+
+      var url = Uri.parse(
+        "http://192.168.1.99:8090/prsc_ta/mytourlistApi",
+      );
+
+      var request = http.MultipartRequest(
+        "POST",
+        url,
+      );
+
+      request.fields["log_id"] = logId;
+
+      print("REQUEST FIELDS : ${request.fields}");
+
+      var response = await request.send();
+
+      var res = await response.stream.bytesToString();
+
+      print("MY TOUR LIST STATUS : ${response.statusCode}");
+      print("MY TOUR LIST RESPONSE : $res");
+
+      if (response.statusCode == 200) {
+        return jsonDecode(res);
+      }
+
+    } catch (e) {
+
+      print("MY TOUR LIST ERROR : $e");
+
+    }
+
+    return null;
+  }
 }

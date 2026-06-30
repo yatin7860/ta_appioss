@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../widgets/app_drawer.dart';
 import 'login_screen.dart';
+import 'my_tour_list_screen.dart';
+import 'dart:convert';
 
 class ApplyTourScreen extends StatefulWidget {
 
@@ -264,20 +266,130 @@ Future<void> loadUser() async {
   }
 
   // ================= SUBMIT =================
+Future<void> submitData() async {
 
-  void submitData() {
+  // ===== VALIDATION =====
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+  if (journeyList.isEmpty) {
 
+    ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
+        content: Text("Please add at least one journey."),
+      ),
+    );
 
+    return;
+  }
+
+  print("=========== BEFORE SUBMIT ===========");
+  print("Journey Count : ${journeyList.length}");
+  print(journeyList);
+
+  Map<String, dynamic> body = {
+
+    "PUT_SELECTED_PROEJCT": selectedProjectScheme ?? "",
+
+    "PUT_EMP_ID": empId,
+
+    "PUT_NAME": name,
+
+    "PUT_CONTACT": contact,
+
+    "PUT_EMAIL": email,
+
+    "PUT_DESIGNATION": designation,
+
+    "PUT_DIVISION": group,
+
+    "PUT_USER_TYPE": "USER",
+
+    "PUT_RI_EMAIL": "",
+
+    "PUT_VI_EMAIL": "",
+
+    "PUT_AO_EMAIL": "",
+
+    "PUT_DIRECTOR_EMAIL": "",
+
+    "PUT_VISIT_PURPOSE": purposeController.text,
+
+    "PUT_TOUR_TYPE": tourType,
+
+    "PUT_OTHER_TOUR_TYPE": "",
+
+    "PUT_SANCTION": sanctionController.text,
+
+    "PUT_OTHER_PROJECT": "",
+
+    "PUT_ADVANCE":
+        showAdvance
+            ? advanceController.text
+            : "0",
+
+    "PUT_ADVANCE_DATE":
+        endDate == null
+            ? ""
+            : endDate.toString().split(" ")[0],
+
+    "PUT_FROM_DATE":
+        startDate == null
+            ? ""
+            : startDate.toString().split(" ")[0],
+
+    "PUT_TO_DATE":
+        endDate == null
+            ? ""
+            : endDate.toString().split(" ")[0],
+
+    "PUT_DAYS": getDays(),
+
+    "PUT_VISIT_PLACE": placeController.text,
+
+    // IMPORTANT
+    "journey_details": journeyList,
+
+  };
+
+  print(body);
+
+  final response = await ApiService.submitTour(body);
+
+  print("SUBMIT RESPONSE : $response");
+
+  if (!mounted) return;
+
+  if (response != null &&
+      response["success"] == true) {
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(response["message"]),
+      ),
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const MyTourListScreen(),
+      ),
+    );
+
+  } else {
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
         content: Text(
-          "Submitted Successfully",
+          response?["message"] ??
+              "Failed to submit tour",
         ),
       ),
     );
+
   }
+
+}
+  ///add journey 
+  ///
 void addJourney() {
 
   if (startDate == null) {
@@ -287,8 +399,8 @@ void addJourney() {
     return;
   }
 
-  if (fromController.text.isEmpty ||
-      toController.text.isEmpty ||
+  if (fromController.text.trim().isEmpty ||
+      toController.text.trim().isEmpty ||
       selectedJourneyMode == null) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Fill all journey details")),
@@ -296,41 +408,53 @@ void addJourney() {
     return;
   }
 
+  Map<String, dynamic> journey = {
+
+    "date": startDate!.toString().split(" ")[0],
+
+    "from": fromController.text.trim(),
+
+    "to": toController.text.trim(),
+
+    "journey_mode": selectedJourneyMode!,
+
+    "taxi_type": selectedVehicleType ?? "",
+
+    "taxi_remarks": vehicleRemarksController.text.trim(),
+
+    "other_mode": otherJourneyController.text.trim(),
+
+    "remarks": remarksController.text.trim(),
+
+  };
+
   setState(() {
-journeyList.add({
 
-  "date": startDate.toString().split(" ")[0],
+    journeyList.add(journey);
 
-  "from": fromController.text,
+    print("============= JOURNEY ADDED =============");
+    print(journey);
+    print("TOTAL JOURNEYS : ${journeyList.length}");
+    print(journeyList);
+    print("========================================");
 
-  "to": toController.text,
-
-  "mode": selectedJourneyMode,
-
-  "vehicleType": selectedVehicleType,
-
-  "vehicleRemarks":
-      vehicleRemarksController.text,
-      
-  "otherJourney": otherJourneyController.text,
-
-  "remarks": remarksController.text,
-
-});
     fromController.clear();
     toController.clear();
     remarksController.clear();
+    vehicleRemarksController.clear();
+    otherJourneyController.clear();
 
     selectedJourneyMode = null;
+    selectedVehicleType = null;
     startDate = null;
-  
-  vehicleRemarksController.clear();
-
-  otherJourneyController.clear();
-
-  selectedVehicleType = null;
 
   });
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text("Journey Added Successfully"),
+    ),
+  );
 }
   // ================= UI =================
 
