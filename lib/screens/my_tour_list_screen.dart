@@ -1,7 +1,10 @@
+
+
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
 import 'start_tour_screen.dart';
+import 'tour_details_screen.dart';
 
 class MyTourListScreen extends StatefulWidget {
   const MyTourListScreen({super.key});
@@ -294,8 +297,11 @@ class _MyTourListScreenState extends State<MyTourListScreen> {
 
                                             MaterialPageRoute(
 
-                                              builder: (_) =>
-                                                  const StartTourScreen(),
+                                              builder: (_) => TourDetailsScreen(
+
+                                              tourId: tour["TOUR_ID"].toString(),
+
+                                              ),
 
                                             ),
 

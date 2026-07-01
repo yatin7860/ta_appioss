@@ -13,7 +13,7 @@ class ApiService {
       ) async {
 
     var url = Uri.parse(
-      "http://202.164.39.167:2345/prsc_ta/authenticateApi",
+      "http://192.168.1.99:8090/prsc_ta/authenticateApi",
     );
 
     var request =
@@ -67,7 +67,7 @@ class ApiService {
     try {
 
       var url = Uri.parse(
-        "http://202.164.39.167:2345/prsc_ta/changePasswordApi",
+        "http://192.168.1.99:8090/prsc_ta/changePasswordApi",
       );
 
       var request =
@@ -194,7 +194,7 @@ class ApiService {
       // ================= API =================
 
       var url = Uri.parse(
-        "http://202.164.39.167:2345/prsc_ta/userprofileApi",
+        "http://192.168.1.99:8090/prsc_ta/userprofileApi",
       );
 
       String logId =
@@ -322,12 +322,13 @@ getTourDropdownData() async {
   return null;
 }
 // ================= SUBMIT TOUR API =================
-
 static Future<Map<String, dynamic>?> submitTour(
     Map<String, dynamic> body,
 ) async {
 
   try {
+
+    print("========== INSIDE submitTour ==========");
 
     var url = Uri.parse(
       "http://192.168.1.99:8090/prsc_ta/inserttourApi",
@@ -340,41 +341,48 @@ static Future<Map<String, dynamic>?> submitTour(
 
     body.forEach((key, value) {
 
-  if (key == "journey_details") {
+      if (key == "journey_details") {
+        request.fields[key] = jsonEncode(value);
+      } else {
+        request.fields[key] = value.toString();
+      }
 
-    request.fields[key] = jsonEncode(value);
+    });
 
-  } else {
+    print("REQUEST FIELDS:");
+    print(request.fields);
 
-    request.fields[key] = value.toString();
-
-  }
-
-});
-
-    var response = await request.send();
-
-    var res = await response.stream.bytesToString();
+    var response = await request.send().timeout(
+  const Duration(seconds: 20),
+);
 
     print("SUBMIT TOUR STATUS : ${response.statusCode}");
+
+    var res = await response.stream.bytesToString();
 
     print("SUBMIT TOUR RESPONSE : $res");
 
     if (response.statusCode == 200) {
-
       return jsonDecode(res);
-
     }
 
-  } catch (e) {
+    return {
+      "success": false,
+      "message": "HTTP Error ${response.statusCode}"
+    };
+
+  } catch (e, stackTrace) {
 
     print("SUBMIT TOUR ERROR : $e");
+    print(stackTrace);
 
+    return {
+      "success": false,
+      "message": e.toString()
+    };
   }
-
-  return null;
 }
-//================ MY TOUR LIST API =================//
+
 
 //================ MY TOUR LIST API =================//
 
@@ -420,4 +428,46 @@ static Future<Map<String, dynamic>?> submitTour(
 
     return null;
   }
+  //================ TOUR DETAILS API =================//
+
+static Future<Map<String, dynamic>?> getTourDetails(
+    String tourId,
+) async {
+
+  try {
+
+    var url = Uri.parse(
+      "http://192.168.1.99:8090/prsc_ta/longtour",
+    );
+
+    var request = http.MultipartRequest(
+      "POST",
+      url,
+    );
+
+    request.fields["tour_id"] = tourId;
+
+    print("TOUR DETAILS REQUEST : ${request.fields}");
+
+    var response = await request.send();
+
+    var res = await response.stream.bytesToString();
+
+    print("TOUR DETAILS STATUS : ${response.statusCode}");
+    print("TOUR DETAILS RESPONSE : $res");
+
+    if (response.statusCode == 200) {
+
+      return jsonDecode(res);
+
+    }
+
+  } catch (e) {
+
+    print("TOUR DETAILS ERROR : $e");
+
+  }
+
+  return null;
+}
 }
