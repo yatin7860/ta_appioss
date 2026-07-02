@@ -85,68 +85,181 @@ class _MyTourListScreenState extends State<MyTourListScreen> {
   @override
   Widget build(BuildContext context) {
 
-    return Scaffold(
+  return Scaffold(
 
-      appBar: AppBar(
+  backgroundColor: const Color(0xffF4F6FA),
 
-        title: const Text("My Tour List"),
+    appBar: AppBar(
 
-        backgroundColor: const Color(0xFF1E2F5B),
+  elevation: 0,
 
-      ),
+  backgroundColor: const Color(0xFF1E2F5B),
+
+  centerTitle: true,
+
+  title: const Text(
+
+    "My Tour List",
+
+    style: TextStyle(
+
+      color: Colors.white,
+
+      fontSize: 22,
+
+      fontWeight: FontWeight.bold,
+
+    ),
+
+  ),
+
+  actions: [
+
+    IconButton(
+
+      icon: const Icon(Icons.refresh),
+
+      onPressed: loadTours,
+
+    ),
+
+  ],
+
+),
 
       body: Padding(
 
         padding: const EdgeInsets.all(16),
+        
+        
 
         child: Column(
 
           children: [
 
-            TextField(
+        Container(
 
-              controller: searchController,
+  decoration: BoxDecoration(
 
-              onChanged: searchTour,
+    color: Colors.white,
 
-              decoration: InputDecoration(
+    borderRadius: BorderRadius.circular(15),
 
-                hintText: "Search Tour",
+    boxShadow: [
 
-                prefixIcon: const Icon(Icons.search),
+      BoxShadow(
 
-                border: OutlineInputBorder(
+        color: Colors.black12,
 
-                  borderRadius: BorderRadius.circular(10),
+        blurRadius: 10,
 
-                ),
+        offset: const Offset(0,4),
 
-              ),
+      ),
+
+    ],
+
+  ),
+
+  child: TextField(
+
+    controller: searchController,
+
+    onChanged: searchTour,
+
+    decoration: InputDecoration(
+
+      hintText: "Search Tour",
+
+      prefixIcon: const Icon(
+
+        Icons.search,
+
+        color: Color(0xff1E2F5B),
+
+      ),
+
+      suffixIcon: searchController.text.isEmpty
+
+          ? null
+
+          : IconButton(
+
+              icon: const Icon(Icons.close),
+
+              onPressed: () {
+
+                searchController.clear();
+
+                searchTour("");
+
+              },
 
             ),
+
+      border: InputBorder.none,
+
+      contentPadding:
+
+          const EdgeInsets.symmetric(
+
+        vertical: 18,
+
+      ),
+
+    ),
+
+  ),
+
+),
 
             const SizedBox(height: 15),
 
             Expanded(
 
-              child: loading
+             child: loading
 
-                  ? const Center(
+    ? const Center(
+        child: CircularProgressIndicator(),
+      )
 
-                      child: CircularProgressIndicator(),
+    : filteredTours.isEmpty
 
-                    )
+        ? Center(
 
-                  : filteredTours.isEmpty
+            child: Column(
 
-                      ? const Center(
+              mainAxisAlignment: MainAxisAlignment.center,
 
-                          child: Text(
-                            "No Tour Found",
-                            style: TextStyle(fontSize: 18),
-                          ),
+              children: [
 
-                        )
+                Icon(
+                  Icons.travel_explore,
+                  size: 100,
+                  color: Colors.grey,
+                ),
+
+                SizedBox(height:20),
+
+                Text(
+                  "No Tours Available",
+                  style: TextStyle(
+                    fontSize:22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                SizedBox(height:10),
+
+                Text(
+                  "Create your first tour.",
+                ),
+
+              ],
+
+            ),
+
+          )
 
                       : ListView.builder(
 
@@ -155,18 +268,44 @@ class _MyTourListScreenState extends State<MyTourListScreen> {
                           itemBuilder: (context, index) {
 
                             final tour = filteredTours[index];
+                            return Container(
 
-                            return Card(
+  margin: const EdgeInsets.only(bottom: 18),
 
-                              elevation: 3,
+  decoration: BoxDecoration(
 
-                              margin: const EdgeInsets.only(bottom: 15),
+    color: Colors.white,
 
-                              shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(18),
 
-                                borderRadius: BorderRadius.circular(12),
+    boxShadow: [
 
-                              ),
+      BoxShadow(
+
+        color: Colors.black12,
+
+        blurRadius: 10,
+
+        offset: const Offset(0,5),
+
+      ),
+
+    ],
+
+  ),
+
+  child: Card(
+
+    elevation: 0,
+
+    margin: EdgeInsets.zero,
+
+    shape: RoundedRectangleBorder(
+
+      borderRadius: BorderRadius.circular(18),
+
+    ),
+
 
                               child: Padding(
 
@@ -178,156 +317,272 @@ class _MyTourListScreenState extends State<MyTourListScreen> {
                                       CrossAxisAlignment.start,
 
                                   children: [
+                                    
+  Container(
 
-                                    Text(
+  padding: const EdgeInsets.all(16),
 
-                                      "Tour ID : ${tour["TOUR_ID"]}",
+  decoration: BoxDecoration(
 
-                                      style: const TextStyle(
+    gradient: const LinearGradient(
 
-                                        fontSize: 18,
+      colors: [
 
-                                        fontWeight: FontWeight.bold,
+        Color(0xff1E2F5B),
 
-                                      ),
+        Color(0xff355CC9),
 
-                                    ),
+      ],
 
-                                    const SizedBox(height: 10),
+      begin: Alignment.topLeft,
 
-                                    Text("Name : ${tour["NAME"]}"),
+      end: Alignment.bottomRight,
 
-                                    Text("Visit Place : ${tour["VISIT_PLACE"]}"),
+    ),
 
-                                    Text("Purpose : ${tour["VISIT_PURPOSE"]}"),
+    borderRadius: BorderRadius.circular(15),
 
-                                    Text("Project : ${tour["PROJECT_ID"]}"),
+  ),
 
-                                    Text("From : ${tour["FROM_DATE"]}"),
+  child: Row(
 
-                                    Text("To : ${tour["TO_DATE"]}"),
+    children: [
 
-                                    const SizedBox(height: 10),
+      CircleAvatar(
 
-                                    Row(
+        radius: 22,
 
-                                      children: [
+        backgroundColor: Colors.white,
 
-                                        const Text(
+        child: const Icon(
 
-                                          "RI : ",
+          Icons.flight_takeoff,
 
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
+          color: Color(0xff1E2F5B),
 
-                                        ),
+        ),
 
-                                        Text(
-                                          tour["RI_STATUS"] ?? "",
-                                        ),
+      ),
 
-                                      ],
+      const SizedBox(width:15),
 
-                                    ),
+      Expanded(
 
-                                    Row(
+        child: Column(
 
-                                      children: [
+          crossAxisAlignment:
 
-                                        const Text(
+              CrossAxisAlignment.start,
 
-                                          "PI : ",
+          children: [
 
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
+            const Text(
 
-                                        ),
+              "Tour ID",
 
-                                        Text(
-                                          tour["PI_STATUS"] ?? "",
-                                        ),
+              style: TextStyle(
 
-                                      ],
+                color: Colors.white70,
 
-                                    ),
+                fontSize: 13,
 
-                                    Row(
+              ),
 
-                                      children: [
+            ),
 
-                                        const Text(
+            Text(
 
-                                          "AO : ",
+              "#${tour["TOUR_ID"]}",
 
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
+              style: const TextStyle(
 
-                                        ),
+                color: Colors.white,
 
-                                        Text(
-                                          tour["AO_STATUS"] ?? "",
-                                        ),
+                fontSize: 22,
 
-                                      ],
+                fontWeight: FontWeight.bold,
 
-                                    ),
+              ),
 
-                                    const SizedBox(height: 15),
+            ),
 
-                                    SizedBox(
+          ],
 
-                                      width: double.infinity,
+        ),
 
-                                      child: ElevatedButton(
+      ),
 
-                                        style: ElevatedButton.styleFrom(
+      buildStatusChip(
 
-                                          backgroundColor: Colors.green,
+        tour["DIRECTOR_STATUS"],
 
-                                        ),
+      ),
 
-                                        onPressed: () {
+    ],
 
-                                          Navigator.push(
+  ),
 
-                                            context,
+),
 
-                                            MaterialPageRoute(
 
-                                              builder: (_) => TourDetailsScreen(
+  const SizedBox(height: 10),
 
-                                              tourId: tour["TOUR_ID"].toString(),
+  buildInfoTile(
+  Icons.person,
+  "Employee",
+  tour["NAME"],
+),
 
-                                              ),
+buildInfoTile(
+  Icons.location_on,
+  "Visit Place",
+  tour["VISIT_PLACE"],
+),
 
-                                            ),
+buildInfoTile(
+  Icons.description,
+  "Purpose",
+  tour["VISIT_PURPOSE"],
+),
 
-                                          );
+buildInfoTile(
+  Icons.account_tree,
+  "Project",
+  tour["PROJECT_ID"],
+),
 
-                                        },
+buildInfoTile(
+  Icons.calendar_today,
+  "From Date",
+  tour["FROM_DATE"],
+),
 
-                                        child: const Text(
+buildInfoTile(
+  Icons.calendar_month,
+  "To Date",
+  tour["TO_DATE"],
+),
 
-                                          "View Details",
+  Wrap(
 
-                                        ),
+  spacing: 10,
 
-                                      ),
+  runSpacing: 10,
 
-                                    ),
+  children: [
 
-                                  ],
+    buildApprovalChip(
+      "RI",
+      tour["RI_STATUS"],
+    ),
 
-                                ),
+    buildApprovalChip(
+      "PI",
+      tour["PI_STATUS"],
+    ),
 
-                              ),
+    buildApprovalChip(
+      "VI",
+      tour["VI_STATUS"],
+    ),
 
-                            );
+    buildApprovalChip(
+      "AO",
+      tour["AO_STATUS"],
+    ),
 
-                          },
+    buildApprovalChip(
+      "Director",
+      tour["DIRECTOR_STATUS"],
+    ),
+
+  ],
+
+),
+const SizedBox(height: 15),
+
+SizedBox(
+
+  width: double.infinity,
+
+  child: ElevatedButton.icon(
+
+    icon: const Icon(
+
+      Icons.remove_red_eye,
+
+      color: Colors.white,
+
+    ),
+
+    style: ElevatedButton.styleFrom(
+
+      backgroundColor: const Color(0xff1E2F5B),
+
+      elevation: 3,
+
+      padding: const EdgeInsets.symmetric(
+
+        vertical: 15,
+
+      ),
+
+      shape: RoundedRectangleBorder(
+
+        borderRadius: BorderRadius.circular(14),
+
+      ),
+
+    ),
+
+    onPressed: () {
+
+      Navigator.push(
+
+        context,
+
+        MaterialPageRoute(
+
+          builder: (_) => TourDetailsScreen(
+
+            tourId: tour["TOUR_ID"].toString(),
+
+          ),
+
+        ),
+
+      );
+
+    },
+
+    label: const Text(
+
+      "View Details",
+
+      style: TextStyle(
+
+        color: Colors.white,
+
+        fontWeight: FontWeight.bold,
+
+        fontSize: 17,
+
+      ),
+
+    ),
+
+  ),
+
+),
+
+]
+ ),
+
+  ),
+
+  ),
+  );
+                            },
 
                         ),
 
@@ -338,9 +593,266 @@ class _MyTourListScreenState extends State<MyTourListScreen> {
         ),
 
       ),
+      
 
     );
+    
+
+  }
+Widget buildStatusChip(dynamic status) {
+
+  String value =
+      status?.toString() ?? "PENDING";
+
+  Color color = Colors.orange;
+
+  if (value == "APPROVE") {
+
+    color = Colors.green;
 
   }
 
+  if (value == "REJECT") {
+
+    color = Colors.red;
+
+  }
+
+  return Container(
+
+    padding: const EdgeInsets.symmetric(
+
+      horizontal: 12,
+
+      vertical: 6,
+
+    ),
+
+    decoration: BoxDecoration(
+
+      color: color,
+
+      borderRadius: BorderRadius.circular(20),
+
+    ),
+
+    child: Text(
+
+      value,
+
+      style: const TextStyle(
+
+        color: Colors.white,
+
+        fontWeight: FontWeight.bold,
+
+      ),
+
+    ),
+
+  );
+
+}
+Widget buildInfoTile(
+
+  IconData icon,
+
+  String title,
+
+  dynamic value,
+
+) {
+
+  return Padding(
+
+    padding: const EdgeInsets.only(bottom: 12),
+
+    child: Row(
+
+      crossAxisAlignment: CrossAxisAlignment.start,
+
+      children: [
+
+        CircleAvatar(
+
+          radius: 18,
+
+          backgroundColor:
+              const Color(0xff1E2F5B).withOpacity(.1),
+
+          child: Icon(
+
+            icon,
+
+            size: 18,
+
+            color: const Color(0xff1E2F5B),
+
+          ),
+
+        ),
+
+        const SizedBox(width: 12),
+
+        Expanded(
+
+          child: Column(
+
+            crossAxisAlignment: CrossAxisAlignment.start,
+
+            children: [
+
+              Text(
+
+                title,
+
+                style: TextStyle(
+
+                  color: Colors.grey[600],
+
+                  fontSize: 12,
+
+                ),
+
+              ),
+
+              const SizedBox(height: 2),
+
+              Text(
+
+                value == null || value.toString().isEmpty
+                    ? "-"
+                    : value.toString(),
+
+                style: const TextStyle(
+
+                  fontWeight: FontWeight.w600,
+
+                  fontSize: 16,
+
+                ),
+
+              ),
+
+            ],
+
+          ),
+
+        ),
+
+      ],
+
+    ),
+
+  );
+
+}
+Widget buildApprovalChip(
+
+  String title,
+
+  dynamic status,
+
+) {
+
+  String value =
+      status?.toString() ?? "PENDING";
+
+  Color color = Colors.orange;
+
+  IconData icon = Icons.schedule;
+
+  if (value.toUpperCase() == "APPROVE") {
+
+    color = Colors.green;
+
+    icon = Icons.check_circle;
+
+  } else if (value.toUpperCase() == "REJECT") {
+
+    color = Colors.red;
+
+    icon = Icons.cancel;
+
+  } else if (value.toUpperCase() ==
+      "ACTION NOT REQUIRED") {
+
+    color = Colors.blue;
+
+    icon = Icons.info;
+
+  } else if (value.toUpperCase() ==
+      "PENDING") {
+
+    color = Colors.orange;
+
+    icon = Icons.schedule;
+
+  }
+
+  return Container(
+
+    padding: const EdgeInsets.symmetric(
+
+      horizontal: 12,
+
+      vertical: 8,
+
+    ),
+
+    decoration: BoxDecoration(
+
+      color: color.withOpacity(0.12),
+
+      borderRadius: BorderRadius.circular(30),
+
+      border: Border.all(
+
+        color: color,
+
+      ),
+
+    ),
+
+    child: Row(
+
+      mainAxisSize: MainAxisSize.min,
+
+      children: [
+
+        Icon(
+
+          icon,
+
+          size: 16,
+
+          color: color,
+
+        ),
+
+        const SizedBox(width: 6),
+
+        Text(
+
+          "$title : $value",
+
+          style: TextStyle(
+
+            color: color,
+
+            fontWeight: FontWeight.bold,
+
+            fontSize: 13,
+
+          ),
+
+        ),
+
+      ],
+
+    ),
+
+  );
+
+}
 }

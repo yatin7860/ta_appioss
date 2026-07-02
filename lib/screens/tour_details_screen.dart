@@ -17,7 +17,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
   bool loading = true;
 
 Map<String, dynamic>? tour;
-
+Map<String, dynamic>? profile;
 List journeyList = [];
 
   @override
@@ -27,19 +27,24 @@ List journeyList = [];
   }
 Future<void> loadData() async {
 
-  final response =
+  final tourResponse =
       await ApiService.getTourDetails(widget.tourId);
 
-  if (response != null &&
-      response["success"] == true &&
-      response["data"] != null &&
-      response["data"].isNotEmpty) {
+  final profileResponse =
+      await ApiService.getProfile();
+
+  if (tourResponse != null &&
+      tourResponse["success"] == true &&
+      tourResponse["data"] != null &&
+      tourResponse["data"].isNotEmpty) {
 
     setState(() {
 
-      journeyList = response["data"];
+      journeyList = tourResponse["data"];
 
-      tour = response["data"][0];
+      tour = tourResponse["data"][0];
+
+      profile = profileResponse;
 
       loading = false;
 
@@ -54,7 +59,6 @@ Future<void> loadData() async {
     });
 
   }
-
 }
 
   String value(dynamic v) {
@@ -66,6 +70,20 @@ Future<void> loadData() async {
 
     return v.toString();
   }
+  String get reportingEmail =>
+    profile?["REPORTING_INCHARGE"] ?? "-";
+
+String get vehicleEmail =>
+    profile?["VI_INCHARGE_1"] ?? "-";
+
+String get accountEmail =>
+    profile?["AO_INCHARGE_1"] ?? "-";
+
+String get directorEmail =>
+    profile?["DIRECTOR_APPROVAL"] ?? "-";
+
+String get userRole =>
+    profile?["ROLE"] ?? "-";
 
 Widget rowItem(
   String title,
@@ -539,44 +557,58 @@ ExpansionTile(
 
           children: [
 
-       rowItem(
-          "Reporting Incharge Time",
-          tour!["RI_STATUS_TIME"],
-        ),
+     rowItem(
+  "Reporting Incharge",
+  reportingEmail,
+),
 
-        statusRow(
-        "Reporting Incharge Status",
-         tour!["RI_STATUS"],
-        ),
+rowItem(
+  "Role",
+  "Reporting Incharge",
+),
 
-        rowItem(
-          "Reporting Incharge Remarks",
-          tour!["RI_REMARKS"],
-        ),
+statusRow(
+  "Status",
+  tour!["RI_STATUS"],
+),
 
-        const Divider(),
-
-        rowItem(
-          "Project Incharge Time",
-          tour!["PI_STATUS_TIME"],
-        ),
-
-        statusRow(
-        "Project Incharge Status",
-        tour!["PI_STATUS"],
-        ),
-
-        rowItem(
-          "Project Incharge Remarks",
-          tour!["PI_REMARKS"],
-        ),
+rowItem(
+  "Remarks",
+  tour!["RI_REMARKS"],
+),
 
         const Divider(),
 
         rowItem(
-          "Vehicle Incharge Time",
-          tour!["VI_STATUS_TIME"],
-        ),
+  "Project Incharge",
+  profile?["PI_INCHARGE"] ?? "-",
+),
+
+rowItem(
+  "Role",
+  "Project Incharge",
+),
+
+statusRow(
+  "Status",
+  tour!["PI_STATUS"],
+),
+
+rowItem(
+  "Remarks",
+  tour!["PI_REMARKS"],
+),
+        const Divider(),
+
+      rowItem(
+  "Vehicle Incharge",
+  vehicleEmail,
+),
+
+rowItem(
+  "Role",
+  "Vehicle Incharge",
+),
 
         statusRow(
         "Vehicle Incharge Status",
@@ -600,10 +632,16 @@ ExpansionTile(
 
         const Divider(),
 
+       
         rowItem(
-          "Account Office Time",
-          tour!["AO_STATUS_TIME"],
-        ),
+  "Account Office",
+  accountEmail,
+),
+
+rowItem(
+  "Role",
+  "Accounts Office",
+),
 
         statusRow(
           "Account Office Status",
@@ -617,10 +655,15 @@ ExpansionTile(
 
         const Divider(),
 
-        rowItem(
-          "Director Time",
-          tour!["DIRECTOR_STATUS_TIME"],
-        ),
+       rowItem(
+  "Director",
+  directorEmail,
+),
+
+rowItem(
+  "Role",
+  "Director",
+),
 
         statusRow(
         "Director Status",
