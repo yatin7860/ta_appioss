@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/pdf_service.dart';
 
 class TourDetailsScreen extends StatefulWidget {
   final String tourId;
@@ -288,8 +289,20 @@ Widget statusRow(String title, String? status) {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
-                            // print later
+                          onPressed: () async {
+
+                            if (tour == null) return;
+
+                            await PdfService.printTour(
+
+                              tour: tour!,
+
+                              profile: profile,
+
+                              journeyList: journeyList,
+
+                            );
+
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
