@@ -470,4 +470,291 @@ static Future<Map<String, dynamic>?> getTourDetails(
 
   return null;
 }
+//================ ACTION LIST API =================//
+
+static Future<Map<String, dynamic>?> getActionList() async {
+
+  try {
+
+    final prefs = await SharedPreferences.getInstance();
+
+    String logId = prefs.getString("log_id") ?? "";
+
+    var url = Uri.parse(
+      "http://192.168.1.99:8090/prsc_ta/actionlistApi",
+    );
+
+    var request = http.MultipartRequest(
+      "POST",
+      url,
+    );
+
+    request.fields["log_id"] = logId;
+
+    print("ACTION LIST REQUEST");
+    print(request.fields);
+
+    var response = await request.send();
+
+    var res = await response.stream.bytesToString();
+
+    print("ACTION LIST STATUS : ${response.statusCode}");
+
+    print("ACTION LIST RESPONSE : $res");
+
+    if (response.statusCode == 200) {
+
+      return jsonDecode(res);
+
+    }
+
+  } catch(e){
+
+    print("ACTION LIST ERROR : $e");
+
+  }
+
+  return null;
+
+}
+//================ APPROVAL API =================//
+
+static Future<Map<String, dynamic>?> approveTour({
+
+  required String tourId,
+
+  required String action,
+
+  required String remarks,
+
+  required String email,
+
+  String vehicleName = "",
+
+  String driverName = "",
+
+}) async {
+
+  try {
+
+    var url = Uri.parse(
+
+      "http://192.168.1.99:8090/prsc_ta/approveApi",
+
+    );
+
+    var request = http.MultipartRequest(
+
+      "POST",
+
+      url,
+
+    );
+
+    request.fields["tour_id"] = tourId;
+
+    request.fields["action"] = action;
+
+    request.fields["remarks"] = remarks;
+
+    request.fields["email"] = email;
+
+    request.fields["VEHICLE_NAME"] = vehicleName;
+
+    request.fields["DRIVER_NAME"] = driverName;
+
+    print("APPROVAL REQUEST");
+
+    print(request.fields);
+
+    var response = await request.send();
+
+    var res = await response.stream.bytesToString();
+
+    print("APPROVAL STATUS : ${response.statusCode}");
+
+    print("APPROVAL RESPONSE : $res");
+
+    if(response.statusCode==200){
+
+      return jsonDecode(res);
+
+    }
+
+  }catch(e){
+
+    print("APPROVAL ERROR : $e");
+
+  }
+
+  return null;
+
+}
+//================ CONFIRM JOURNEY API =================//
+
+static Future<Map<String,dynamic>?> confirmJourney({
+
+  required String tourId,
+
+  required String confirmationStatus,
+
+  required String remarks,
+
+}) async {
+
+  try{
+
+    var url = Uri.parse(
+
+      "http://192.168.1.99:8090/prsc_ta/confirmJourneyApi",
+
+    );
+
+    var request = http.MultipartRequest(
+
+      "POST",
+
+      url,
+
+    );
+
+    request.fields["tour_id"]=tourId;
+
+    request.fields["confirmation_status"]=confirmationStatus;
+
+    request.fields["remarks"]=remarks;
+
+    print("CONFIRM REQUEST");
+
+    print(request.fields);
+
+    var response=await request.send();
+
+    var res=await response.stream.bytesToString();
+
+    print("CONFIRM STATUS : ${response.statusCode}");
+
+    print("CONFIRM RESPONSE : $res");
+
+    if(response.statusCode==200){
+
+      return jsonDecode(res);
+
+    }
+
+  }catch(e){
+
+    print("CONFIRM ERROR : $e");
+
+  }
+
+  return null;
+
+}
+//================ GET USER ROLE =================//
+
+static Future<String> getUserRole() async {
+
+  final profile = await getProfile();
+
+  if(profile!=null){
+
+    return profile["ROLE"] ?? "";
+
+  }
+
+  return "";
+
+}
+//================ GET USER EMAIL =================//
+
+static Future<String> getLoggedUserEmail() async {
+
+  final profile = await getProfile();
+
+  if(profile!=null){
+
+    return profile["EMAIL"] ?? "";
+
+  }
+
+  return "";
+
+}
+//================ CAN APPROVE =================//
+
+static Future<bool> canApprove() async {
+
+  String role = await getUserRole();
+
+  return role != "USER";
+
+}
+static bool isFullyApproved(Map tour){
+
+  return
+
+      tour["RI_STATUS"]=="APPROVE"
+
+      &&
+
+      tour["PI_STATUS"]=="APPROVE"
+
+      &&
+
+      tour["VI_STATUS"]=="APPROVE"
+
+      &&
+
+      tour["AO_STATUS"]=="APPROVE"
+
+      &&
+
+      tour["DIRECTOR_STATUS"]=="APPROVE";
+
+}
+static bool isConfirmationPending(Map tour){
+
+  return
+
+      tour["CONFIRMATION_STATUS_"]=="PENDING";
+
+}
+static bool canCurrentRoleApprove(
+
+Map tour,
+
+String role,
+
+){
+
+  switch(role){
+
+    case "REPORTING_INCHARGE":
+
+      return tour["RI_STATUS"]=="PENDING";
+
+    case "PROJECT_IN":
+
+      return tour["PI_STATUS"]=="PENDING";
+
+    case "VEHICLE_INCHARGE":
+
+      return tour["VI_STATUS"]=="PENDING";
+
+    case "ACCOUNT_OFFICE":
+
+      return tour["AO_STATUS"]=="PENDING";
+
+    case "DIRECTOR":
+
+      return tour["DIRECTOR_STATUS"]=="PENDING";
+
+    default:
+
+      return false;
+
+  }
+
+}
 }
