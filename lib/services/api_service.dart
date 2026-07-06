@@ -31,6 +31,30 @@ class ApiService {
     var response =
     await request.send();
 
+    print("========== LOGIN HEADERS ==========");
+
+    response.headers.forEach((key, value) {
+      print("$key : $value");
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+
+    String? cookie = response.headers["set-cookie"];
+
+    if (cookie != null) {
+
+      // Keep only the first cookie (ci_session=...)
+      cookie = cookie.split(",").first;
+      cookie = cookie.split(";").first;
+
+      await prefs.setString(
+        "session_cookie",
+        cookie,
+      );
+
+      print("COOKIE SAVED : $cookie");
+
+    }
     if (response.statusCode == 200) {
 
       var res =
@@ -322,68 +346,142 @@ getTourDropdownData() async {
   return null;
 }
 // ================= SUBMIT TOUR API =================
-static Future<Map<String, dynamic>?> submitTour(
-    Map<String, dynamic> body,
-) async {
+  static Future<Map<String, dynamic>?> submitTour(
+      Map<String, dynamic> body,
+      ) async {
 
-  try {
+    try {
 
-    print("========== INSIDE submitTour ==========");
+      print("========== INSIDE submitTour ==========");
 
-    var url = Uri.parse(
-      "http://192.168.1.10:8080/prsc_ta/inserttourApi",
-    );
+      final prefs = await SharedPreferences.getInstance();
 
-    var request = http.MultipartRequest(
-      "POST",
-      url,
-    );
+      String cookie =
+          prefs.getString("session_cookie") ?? "";
 
-    body.forEach((key, value) {
+      print("COOKIE FOUND : $cookie");
 
-      if (key == "journey_details") {
-        request.fields[key] = jsonEncode(value);
-      } else {
-        request.fields[key] = value.toString();
+      var url = Uri.parse(
+        "http://192.168.1.10:8080/prsc_ta/inserttourApi",
+      );
+
+      var request = http.MultipartRequest(
+        "POST",
+        url,
+      );
+
+      //==================== COOKIE ====================//
+
+      if (cookie.isNotEmpty) {
+
+        request.headers["Cookie"] = cookie;
+
       }
 
-    });
+      print("REQUEST HEADERS :");
+      request.headers.forEach((k, v) {
+        print("$k : $v");
+      });
 
-    print("REQUEST FIELDS:");
-    print(request.fields);
+      //==================== BODY ====================//
 
-    var response = await request.send().timeout(
-  const Duration(seconds: 20),
-);
+      body.forEach((key, value) {
 
-    print("SUBMIT TOUR STATUS : ${response.statusCode}");
+        if (key == "journey_details") {
 
-    var res = await response.stream.bytesToString();
+          request.fields[key] = jsonEncode(value);
 
-    print("SUBMIT TOUR RESPONSE : $res");
+        } else {
 
-    if (response.statusCode == 200) {
-      return jsonDecode(res);
+          request.fields[key] = value.toString();
+
+        }
+
+      });
+
+      print("========== REQUEST URL ==========");
+      print(url);
+
+      print("========== REQUEST FIELDS ==========");
+
+      request.fields.forEach((key, value) {
+
+        print("$key = $value");
+
+      });
+
+      print("===================================");
+
+      var response = await request.send().timeout(
+        const Duration(seconds: 20),
+      );
+
+      print("========== RESPONSE ==========");
+      print("STATUS CODE : ${response.statusCode}");
+
+      print("RESPONSE HEADERS:");
+
+      response.headers.forEach((k, v) {
+
+        print("$k : $v");
+
+      });
+
+      var res = await response.stream.bytesToString();
+
+      print("========== RAW RESPONSE ==========");
+      print(res);
+      print("=================================");
+
+      if (res.trim().startsWith("<!DOCTYPE html")) {
+
+        print("❌ LOGIN PAGE RETURNED");
+
+        return {
+          "success": false,
+          "message": "Login session expired",
+          "html": res,
+        };
+
+      }
+
+      try {
+
+        return jsonDecode(res);
+
+      } catch (e) {
+
+        print("JSON ERROR : $e");
+
+        return {
+
+          "success": false,
+
+          "message": "Invalid JSON",
+
+          "raw": res,
+
+        };
+
+      }
+
+    } catch (e, stackTrace) {
+
+      print("========== EXCEPTION ==========");
+      print(e);
+      print(stackTrace);
+
+      return {
+
+        "success": false,
+
+        "message": e.toString(),
+
+      };
+
     }
 
-    return {
-      "success": false,
-      "message": "HTTP Error ${response.statusCode}"
-    };
-
-  } catch (e, stackTrace) {
-
-    print("SUBMIT TOUR ERROR : $e");
-    print(stackTrace);
-
-    return {
-      "success": false,
-      "message": e.toString()
-    };
   }
-}
-
-
 //================ MY TOUR LIST API =================//
 
   static Future<Map<String, dynamic>?> getMyTourList() async {
@@ -481,7 +579,7 @@ static Future<Map<String, dynamic>?> getActionList() async {
     String logId = prefs.getString("log_id") ?? "";
 
     var url = Uri.parse(
-      "http://192.168.1.99:8090/prsc_ta/actionlistApi",
+      "http://192.168.1.10:8080/prsc_ta/actionlistApi",
     );
 
     var request = http.MultipartRequest(
@@ -539,7 +637,7 @@ static Future<Map<String, dynamic>?> approveTour({
 
     var url = Uri.parse(
 
-      "http://192.168.1.99:8090/prsc_ta/approveApi",
+      "http://192.168.1.10:8080/prsc_ta/approvelApi",
 
     );
 
@@ -653,19 +751,19 @@ static Future<Map<String,dynamic>?> confirmJourney({
 }
 //================ GET USER ROLE =================//
 
-static Future<String> getUserRole() async {
+  static Future<List<String>> getUserRoles() async {
 
-  final profile = await getProfile();
+    final profile = await getProfile();
 
-  if(profile!=null){
+    if (profile == null) return [];
 
-    return profile["ROLE"] ?? "";
+    String roles = profile["ROLE"] ?? "";
 
+    return roles
+        .split(",")
+        .map((e) => e.trim().toUpperCase())
+        .toList();
   }
-
-  return "";
-
-}
 //================ GET USER EMAIL =================//
 
 static Future<String> getLoggedUserEmail() async {
@@ -683,78 +781,114 @@ static Future<String> getLoggedUserEmail() async {
 }
 //================ CAN APPROVE =================//
 
-static Future<bool> canApprove() async {
+//================ CAN APPROVE =================//
 
-  String role = await getUserRole();
+  static Future<bool> canApprove() async {
 
-  return role != "USER";
+    List<String> roles = await getUserRoles();
 
-}
-static bool isFullyApproved(Map tour){
+    return roles.any((role) =>
+    role == "REPORTING_INCHARGE" ||
+        role == "PROJECT_INCHARGE" ||
+        role == "VEHICLE_INCHARGE" ||
+        role == "ACCOUNT_OFFICE" ||
+        role == "DIRECTOR");
+  }
 
-  return
+//================ FULLY APPROVED =================//
 
-      tour["RI_STATUS"]=="APPROVE"
+  static bool isFullyApproved(Map tour) {
 
-      &&
+    bool viApproved =
+        tour["VI_STATUS"] == "APPROVE" ||
+            tour["VI_STATUS"] == "Action not Required";
 
-      tour["PI_STATUS"]=="APPROVE"
+    return
 
-      &&
+      tour["RI_STATUS"] == "APPROVE" &&
 
-      tour["VI_STATUS"]=="APPROVE"
+          tour["PI_STATUS"] == "APPROVE" &&
 
-      &&
+          viApproved &&
 
-      tour["AO_STATUS"]=="APPROVE"
+          tour["AO_STATUS"] == "APPROVE" &&
 
-      &&
+          tour["DIRECTOR_STATUS"] == "APPROVE";
+  }
 
-      tour["DIRECTOR_STATUS"]=="APPROVE";
+//================ CONFIRMATION =================//
 
-}
-static bool isConfirmationPending(Map tour){
+  static bool isConfirmationPending(Map tour) {
 
-  return
-
-      tour["CONFIRMATION_STATUS_"]=="PENDING";
-
-}
-static bool canCurrentRoleApprove(
-
-Map tour,
-
-String role,
-
-){
-
-  switch(role){
-
-    case "REPORTING_INCHARGE":
-
-      return tour["RI_STATUS"]=="PENDING";
-
-    case "PROJECT_IN":
-
-      return tour["PI_STATUS"]=="PENDING";
-
-    case "VEHICLE_INCHARGE":
-
-      return tour["VI_STATUS"]=="PENDING";
-
-    case "ACCOUNT_OFFICE":
-
-      return tour["AO_STATUS"]=="PENDING";
-
-    case "DIRECTOR":
-
-      return tour["DIRECTOR_STATUS"]=="PENDING";
-
-    default:
-
-      return false;
+    return tour["CONFIRMATION_STATUS_"] == "PENDING";
 
   }
 
-}
+//================ CURRENT ROLE APPROVAL =================//
+
+  static bool canCurrentRoleApprove(
+
+      Map tour,
+
+      List<String> roles,
+
+      ) {
+
+    if (roles.contains("REPORTING_INCHARGE") &&
+        tour["RI_STATUS"] == "PENDING") {
+
+      return true;
+
+    }
+
+    if (roles.contains("PROJECT_INCHARGE") &&
+        tour["RI_STATUS"] == "APPROVE" &&
+        tour["PI_STATUS"] == "PENDING") {
+
+      return true;
+
+    }
+
+    if (roles.contains("VEHICLE_INCHARGE")) {
+
+      if (tour["VI_STATUS"] == "Action not Required") {
+
+        return false;
+
+      }
+
+      if (tour["PI_STATUS"] == "APPROVE" &&
+          tour["VI_STATUS"] == "PENDING") {
+
+        return true;
+
+      }
+
+    }
+
+    if (roles.contains("ACCOUNT_OFFICE")) {
+
+      if (tour["VI_STATUS"] == "Action not Required") {
+
+        return tour["PI_STATUS"] == "APPROVE" &&
+            tour["AO_STATUS"] == "PENDING";
+
+      }
+
+      return tour["VI_STATUS"] == "APPROVE" &&
+          tour["AO_STATUS"] == "PENDING";
+
+    }
+
+    if (roles.contains("DIRECTOR") &&
+        tour["AO_STATUS"] == "APPROVE" &&
+        tour["DIRECTOR_STATUS"] == "PENDING") {
+
+      return true;
+
+    }
+
+    return false;
+
+  }
 }

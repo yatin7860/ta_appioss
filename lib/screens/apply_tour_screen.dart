@@ -33,6 +33,16 @@ class _ApplyTourScreenState
 
   String designation = "";
 
+  String riEmail = "";
+
+  String viEmail = "";
+
+  String piEmail = "";
+
+  String aoEmail = "";
+
+  String directorEmail = "";
+
   // ================= CONTROLLERS =================
 
   final fromController =
@@ -64,7 +74,7 @@ class _ApplyTourScreenState
 
   String tourType = "";
 
-  List<String> projectSchemes = [];
+  List<dynamic> projectSchemes = [];
 
   List<String> journeyModes = [];
 
@@ -139,6 +149,32 @@ Future<void> loadUser() async {
         designation =
             data['DESIGNATION']
                 ?.toString() ?? "";
+
+        riEmail =
+            data["REPORTING_INCHARGE"]
+                ?.toString() ?? "";
+
+        viEmail =
+            data["VI_INCHARGE_1"]
+                ?.toString() ?? "";
+
+        piEmail = data["PROJECT_INCHARGE"]?.toString() ?? "";
+
+        aoEmail =
+            data["AO_INCHARGE_1"]
+                ?.toString() ?? "";
+
+        directorEmail =
+            data["DIRECTOR_APPROVAL"]
+                ?.toString() ?? "";
+
+        print("RI : $riEmail");
+
+        print("VI : $viEmail");
+
+        print("AO : $aoEmail");
+
+        print("DIRECTOR : $directorEmail");
       });
     }
 
@@ -171,10 +207,7 @@ Future<void> loadUser() async {
 
         setState(() {
 
-          projectSchemes = schemes
-              .map((e) =>
-              e["Project_Name"].toString())
-              .toList();
+          projectSchemes = schemes;
 
           journeyModes = journeys
               .map((e) =>
@@ -303,13 +336,15 @@ Future<void> submitData() async {
 
     "PUT_USER_TYPE": "USER",
 
-    "PUT_RI_EMAIL": "",
+    "PUT_RI_EMAIL": riEmail,
 
-    "PUT_VI_EMAIL": "",
+    "PUT_VI_EMAIL": viEmail,
 
-    "PUT_AO_EMAIL": "",
+    "PUT_PI_EMAIL": piEmail,
 
-    "PUT_DIRECTOR_EMAIL": "",
+    "PUT_AO_EMAIL": aoEmail,
+
+    "PUT_DIRECTOR_EMAIL": directorEmail,
 
     "PUT_VISIT_PURPOSE": purposeController.text,
 
@@ -351,6 +386,16 @@ Future<void> submitData() async {
   };
 
   print(body);
+
+  print("========== BODY ==========");
+
+  body.forEach((key,value){
+
+    print("$key : $value");
+
+  });
+
+  print("==========================");
 
   final response = await ApiService.submitTour(body);
 
@@ -751,13 +796,21 @@ DropdownButtonFormField<String>(
     ),
   ),
   items: projectSchemes.map((item) {
+
     return DropdownMenuItem<String>(
-      value: item,
+
+      value: item["Id"].toString(),
+
       child: Text(
-        item,
+
+        item["Project_Name"],
+
         overflow: TextOverflow.ellipsis,
+
       ),
+
     );
+
   }).toList(),
   onChanged: (value) {
     setState(() {
@@ -1025,7 +1078,7 @@ ListView.builder(
         title: Text("${item['from']} → ${item['to']}"),
         subtitle: Text(
           "Date : ${item['date']}\n"
-          "Mode : ${item['mode']}\n"
+          "Mode : ${item['journey_mode']}\n"
           "Remarks : ${item['remarks']}",
         ),
         trailing: IconButton(

@@ -25,7 +25,7 @@ class _ActionListScreenState
 
   bool loading = true;
 
-  String userRole = "";
+  List<String> userRoles = [];
 
   @override
   void initState() {
@@ -39,8 +39,7 @@ class _ActionListScreenState
       loading = true;
     });
 
-    userRole =
-    await ApiService.getUserRole();
+    userRoles = await ApiService.getUserRoles();
 
     final response =
     await ApiService.getActionList();
@@ -555,12 +554,16 @@ tour["EMAIL"].toString().isEmpty
             buildConfirmationCard(tour),
 
             const SizedBox(height: 18),
-            if (!ApiService.isFullyApproved(tour))
-  buildApprovalSection(tour),
+            if (ApiService.canCurrentRoleApprove(
+              tour,
+              userRoles,
+            ))
+              buildApprovalSection(tour),
 
-if (ApiService.isFullyApproved(tour))
-  buildExecutionSection(tour),
-
+            if (ApiService.isFullyApproved(tour) &&
+                ApiService.isConfirmationPending(tour) &&
+                userRoles.contains("REPORTING_INCHARGE"))
+              buildExecutionSection(tour),
 const SizedBox(height: 20),
 
             SizedBox(
@@ -646,51 +649,49 @@ const SizedBox(height: 20),
 
     );
   }
-  
 
-Widget buildOverallStatus(Map tour) {
 
-  String status = "IN PROCESS";
-  Color color = Colors.orange;
+  Widget buildOverallStatus(Map tour) {
 
-  if (ApiService.isFullyApproved(tour)) {
+    String status = "IN PROCESS";
+    Color color = Colors.orange;
 
-    status = "APPROVED";
-    color = Colors.green;
+    if (
+    tour["RI_STATUS"] == "REJECT" ||
+        tour["PI_STATUS"] == "REJECT" ||
+        tour["VI_STATUS"] == "REJECT" ||
+        tour["AO_STATUS"] == "REJECT" ||
+        tour["DIRECTOR_STATUS"] == "REJECT") {
 
-  } else if (
+      status = "REJECTED";
+      color = Colors.red;
 
-      tour["RI_STATUS"] == "REJECT" ||
-      tour["PI_STATUS"] == "REJECT" ||
-      tour["VI_STATUS"] == "REJECT" ||
-      tour["AO_STATUS"] == "REJECT" ||
-      tour["DIRECTOR_STATUS"] == "REJECT") {
+    } else if (
+    ApiService.isFullyApproved(tour) &&
+        ApiService.isConfirmationPending(tour)) {
 
-    status = "REJECTED";
-    color = Colors.red;
+      status = "WAITING EXECUTION";
+      color = Colors.blue;
 
-  }
+    } else if (
+    tour["CONFIRMATION_STATUS_"] == "EXECUTED") {
 
-  return Chip(
+      status = "EXECUTED";
+      color = Colors.green;
 
-    backgroundColor: color,
+    }
 
-    label: Text(
-
-      status,
-
-      style: const TextStyle(
-
-        color: Colors.white,
-        fontWeight: FontWeight.bold,
-
+    return Chip(
+      backgroundColor: color,
+      label: Text(
+        status,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
       ),
-
-    ),
-
-  );
-
-}
+    );
+  }
 
   Widget buildConfirmationCard(Map tour) {
     return Container(
@@ -751,254 +752,206 @@ Widget buildOverallStatus(Map tour) {
 
     );
   }
-Widget buildApprovalSection(Map tour) {
+  Widget buildApprovalSection(Map tour) {
 
-  if (!ApiService.canCurrentRoleApprove(
-      tour,
-      userRole,
-  )) {
+    return Column(
 
-    return const SizedBox();
+      children: [
 
-  }
+        TextField(
 
-  return Column(
+          controller: remarksController,
 
-    children: [
+          maxLines: 3,
 
-      TextField(
+          decoration: InputDecoration(
 
-        controller: remarksController,
+            labelText: "Remarks",
 
-        decoration: InputDecoration(
+            border: OutlineInputBorder(
 
-          labelText: "Remarks",
+              borderRadius:
+              BorderRadius.circular(12),
 
-          border: OutlineInputBorder(
-
-            borderRadius:
-                BorderRadius.circular(10),
+            ),
 
           ),
 
         ),
 
-      ),
+        const SizedBox(height:15),
 
-      const SizedBox(height:15),
+        Row(
 
-      Row(
+          children: [
 
-        children: [
+            Expanded(
 
-          Expanded(
+              child: FilledButton.icon(
 
-            child: ElevatedButton(
+                icon: const Icon(Icons.check),
 
-              style: ElevatedButton.styleFrom(
+                style: FilledButton.styleFrom(
 
-                backgroundColor: Colors.green,
+                  backgroundColor: Colors.green,
 
-              ),
+                ),
 
-              onPressed: () {
+                onPressed: () {
 
-                approveTour(
+                  approveTour(
+                    tour,
+                    "APPROVE",
+                  );
 
-                  tour,
+                },
 
-                  "APPROVE",
-
-                );
-
-              },
-
-              child: const Text(
-
-                "Approve",
+                label: const Text("Approve"),
 
               ),
 
             ),
 
-          ),
+            const SizedBox(width:12),
 
-          const SizedBox(width:12),
+            Expanded(
 
-          Expanded(
+              child: FilledButton.icon(
 
-            child: ElevatedButton(
+                icon: const Icon(Icons.close),
 
-              style: ElevatedButton.styleFrom(
+                style: FilledButton.styleFrom(
 
-                backgroundColor: Colors.red,
+                  backgroundColor: Colors.red,
 
-              ),
+                ),
 
-              onPressed: () {
+                onPressed: () {
 
-                approveTour(
+                  approveTour(
+                    tour,
+                    "REJECT",
+                  );
 
-                  tour,
+                },
 
-                  "REJECT",
-
-                );
-
-              },
-
-              child: const Text(
-
-                "Reject",
+                label: const Text("Reject"),
 
               ),
 
             ),
 
-          ),
-
-        ],
-
-      ),
-
-    ],
-
-  );
-
-}
-Widget buildExecutionSection(Map tour){
-
-  if(
-
-      !ApiService.isConfirmationPending(
-
-          tour)
-
-  ){
-
-    return const SizedBox();
-
-  }
-
-  return Column(
-
-    children: [
-
-      TextField(
-
-        controller:
-
-        remarksController,
-
-        decoration:
-
-        const InputDecoration(
-
-          labelText:
-
-          "Execution Remarks",
+          ],
 
         ),
 
-      ),
+      ],
 
-      const SizedBox(height:15),
+    );
 
-      Row(
+  }
+  Widget buildExecutionSection(Map tour){
 
-        children: [
+    return Column(
 
-          Expanded(
+      children: [
 
-            child:
+        TextField(
 
-            ElevatedButton(
+          controller: remarksController,
 
-              style:
+          maxLines: 3,
 
-              ElevatedButton.styleFrom(
+          decoration: InputDecoration(
 
-                backgroundColor:
+            labelText: "Execution Remarks",
 
-                Colors.green,
+            border: OutlineInputBorder(
 
-              ),
-
-              onPressed: (){
-
-                updateExecution(
-
-                  tour,
-
-                  "EXECUTED",
-
-                );
-
-              },
-
-              child:
-
-              const Text(
-
-                "Execute All",
-
-              ),
+              borderRadius:
+              BorderRadius.circular(12),
 
             ),
 
           ),
 
-          const SizedBox(width:12),
+        ),
 
-          Expanded(
+        const SizedBox(height:15),
 
-            child:
+        Row(
 
-            ElevatedButton(
+          children: [
 
-              style:
+            Expanded(
 
-              ElevatedButton.styleFrom(
+              child: FilledButton(
 
-                backgroundColor:
+                style: FilledButton.styleFrom(
 
-                Colors.red,
+                  backgroundColor: Colors.green,
 
-              ),
+                ),
 
-              onPressed: (){
+                onPressed: (){
 
-                updateExecution(
+                  updateExecution(
+                    tour,
+                    "EXECUTED",
+                  );
 
-                  tour,
+                },
 
-                  "NOT_EXECUTED",
+                child: const Text(
 
-                );
+                  "Execute All",
 
-              },
-
-              child:
-
-              const Text(
-
-                "Not Execute",
+                ),
 
               ),
 
             ),
 
-          ),
+            const SizedBox(width:12),
 
-        ],
+            Expanded(
 
-      ),
+              child: FilledButton(
 
-    ],
+                style: FilledButton.styleFrom(
 
-  );
+                  backgroundColor: Colors.red,
 
-}
+                ),
+
+                onPressed: (){
+
+                  updateExecution(
+                    tour,
+                    "NOT_EXECUTED",
+                  );
+
+                },
+
+                child: const Text(
+
+                  "Not Execute",
+
+                ),
+
+              ),
+
+            ),
+
+          ],
+
+        ),
+
+      ],
+
+    );
+
+  }
   Widget buildInfoTile(IconData icon,
 
       String title,
