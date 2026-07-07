@@ -69,6 +69,10 @@ class _LoginScreenState extends State<LoginScreen> {
         print("SAVED LOG ID: $logId");
         await prefs.setString('role', user['ROLE'] ?? "");
         await prefs.setString('group', user['GROUP_NAME'] ?? "");
+        
+        print("ROLE FROM API : ${user['ROLE']}");
+
+        print("ROLE SAVED : ${prefs.getString('role')}");
 
         Navigator.pushReplacement(
           context,

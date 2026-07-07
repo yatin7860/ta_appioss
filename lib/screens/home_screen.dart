@@ -20,21 +20,32 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
   String email = "";
+  String role = "";
 
   @override
+ 
   void initState() {
     super.initState();
     loadUserData();
   }
 
   void loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
 
-    setState(() {
-      email = prefs.getString('email') ?? "";
-    });
-  }
+  final prefs = await SharedPreferences.getInstance();
+
+  setState(() {
+
+    email = prefs.getString("email") ?? "";
+
+    role = prefs.getString("role") ?? "";
+
+  });
+
+  print("HOME ROLE : $role");
+
+}
 
   // ================= LOGOUT =================
   void logout(BuildContext context) async {
@@ -101,45 +112,115 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
 
-      buildCard(
-  icon: Icons.check_circle,
-  title: "Action List",
-  color: Colors.red,
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const ActionListScreen()   ,
-      ),
-    );
-  },
-),
+  if (
+
+role.contains("PROJECT_INCHARGE") ||
+
+role.contains("REPORTING_INCHARGE") ||
+
+role.contains("ACCOUNT") ||
+
+role.contains("DIRECTOR") ||
+
+role.contains("VEHICLE_INCHARGE")
+
+)
 
 buildCard(
-  icon: Icons.groups,
-  title: "Employee Tour List",
-  color: Colors.amber,
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const EmployeeTourListScreen(),
-      ),
-    );
-  },
+
+icon: Icons.check_circle,
+
+title: "Action List",
+
+color: Colors.red,
+
+onTap: () {
+
+Navigator.push(
+
+context,
+
+MaterialPageRoute(
+
+builder: (_) => const ActionListScreen(),
+
 ),
+
+);
+
+},
+
+),
+
+if (
+
+role.contains("PROJECT_INCHARGE") ||
+
+role.contains("REPORTING_INCHARGE") ||
+
+role.contains("ACCOUNT") ||
+
+role.contains("DIRECTOR") ||
+
+role.contains("VEHICLE_INCHARGE")
+
+)
+
 buildCard(
-  icon: Icons.groups,
-  title: "Drivers Tour List",
-  color: Colors.amber,
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const DriversTourListScreen(),
-      ),
-    );
-  },
+
+icon: Icons.groups,
+
+title: "Employee Tour List",
+
+color: Colors.amber,
+
+onTap: () {
+
+Navigator.push(
+
+context,
+
+MaterialPageRoute(
+
+builder: (_) => const EmployeeTourListScreen(),
+
+),
+
+);
+
+},
+
+),
+if (
+
+role.contains("VEHICLE_INCHARGE")
+
+)
+
+buildCard(
+
+icon: Icons.local_taxi,
+
+title: "Drivers Tour List",
+
+color: Colors.amber,
+
+onTap: () {
+
+Navigator.push(
+
+context,
+
+MaterialPageRoute(
+
+builder: (_) => const DriversTourListScreen(),
+
+),
+
+);
+
+},
+
 ),
 
       buildCard(
@@ -173,132 +254,11 @@ buildCard(
 
     return Scaffold(
 
-      // ================= DRAWER =================
-      drawer: Drawer(
-        child: Column(
-          children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E2F5B),
-              ),
-              accountName: Text(widget.name),
-              accountEmail: Text(email),
-              currentAccountPicture: const CircleAvatar(
-                backgroundImage: AssetImage("assets/logo.png"),
-              ),
-            ),
-
-            ListTile(
-              leading: const Icon(Icons.dashboard),
-              title: const Text("Dashboard"),
-              onTap: () => Navigator.pop(context),
-            ),
-
-            ListTile(
-              leading: const Icon(Icons.flight),
-              title: const Text("Apply Tour"),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ApplyTourScreen(),
-                  ),
-                );
-              },
-            ),
-
-            // ✅ MY TOUR ADDED
-            ListTile(
-              leading: const Icon(Icons.list_alt),
-              title: const Text("My Tour List"),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MyTourListScreen(),
-                  ),
-                );
-              },
-            ),
-
-            //action list
-            ListTile(
-  leading: const Icon(Icons.check_circle),
-  title: const Text("Action List"),
-  onTap: () {
-    Navigator.pop(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const ActionListScreen(),
-      ),
-    );
-  },
+      ///drawer
+      drawer: AppDrawer(
+  name: widget.name,
+  email: email,
 ),
-
-// employee tour list
-
-ListTile(
-  leading: const Icon(Icons.groups),
-  title: const Text("Employee Tour List"),
-  onTap: () {
-    Navigator.pop(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const EmployeeTourListScreen(),
-      ),
-    );
-  },
-),
-// drivers tour list
-
-ListTile(
-  leading: const Icon(Icons.groups),
-  title: const Text("Drivers Tour List"),
-  onTap: () {
-    Navigator.pop(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const DriversTourListScreen(),
-      ),
-    );
-  },
-),
-//profile
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text("Profile"),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ProfileScreen(),
-                  ),
-                );
-              },
-            ),
-//change password
-            ListTile(
-              leading: const Icon(Icons.key),
-              title: const Text("Change Password"),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChangePasswordScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
 
       // ================= APPBAR =================
       appBar: AppBar(

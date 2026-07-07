@@ -11,7 +11,7 @@ import '../screens/profile_screen.dart';
 import '../screens/change_password_screen.dart';
 import '../screens/login_screen.dart';
 
-class AppDrawer extends StatelessWidget {
+class AppDrawer extends StatefulWidget {
 
   final String name;
   final String email;
@@ -22,7 +22,64 @@ class AppDrawer extends StatelessWidget {
     required this.email,
   });
 
-  Future<void> logout(BuildContext context) async {
+  @override
+  State<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends State<AppDrawer> {
+  String role = "";
+  @override
+void initState() {
+  super.initState();
+  loadRole();
+}
+
+Future<void> loadRole() async {
+
+  final prefs =
+      await SharedPreferences.getInstance();
+
+  role = prefs.getString("role") ?? "";
+
+  print("DRAWER ROLE = $role");
+
+  setState(() {});
+
+}
+bool isApprover() {
+
+  String r = role.toUpperCase();
+
+  return
+
+      r.contains("REPORTING_INCHARGE")
+
+      ||
+
+      r.contains("PROJECT_INCHARGE")
+
+      ||
+
+      r.contains("VEHICLE_INCHARGE")
+
+      ||
+
+      r.contains("ACCOUNT")
+
+      ||
+
+      r.contains("DIRECTOR");
+
+}
+
+bool isVehicleIncharge() {
+
+  return role
+      .toUpperCase()
+      .contains("VEHICLE_INCHARGE");
+
+}
+ Future<void> logout(BuildContext context) async {
 
     bool? confirm = await showDialog(
 
@@ -98,6 +155,9 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    print("DRAWER BUILD");
+print("CURRENT ROLE : $role");
+
     return Drawer(
 
       child: Column(
@@ -112,9 +172,9 @@ class AppDrawer extends StatelessWidget {
 
             ),
 
-            accountName: Text(name),
+            accountName: Text(widget.name),
 
-            accountEmail: Text(email),
+            accountEmail: Text(widget.email),
 
             currentAccountPicture: const CircleAvatar(
 
@@ -139,7 +199,7 @@ class AppDrawer extends StatelessWidget {
 
                 MaterialPageRoute(
 
-                  builder: (_)=>HomeScreen(name: name),
+                  builder: (_)=>HomeScreen(name: widget.name),
 
                 ),
 
@@ -197,59 +257,65 @@ class AppDrawer extends StatelessWidget {
 
           ),
 
-          ListTile(
+         if (isApprover())
 
-            leading: const Icon(Icons.check_circle),
+  ListTile(
 
-            title: const Text("Action List"),
+    leading: const Icon(Icons.check_circle),
 
-            onTap: () {
+    title: const Text("Action List"),
 
-              Navigator.push(
+    onTap: () {
 
-                context,
+      Navigator.push(
 
-                MaterialPageRoute(
+        context,
 
-                  builder: (_)=>const ActionListScreen(),
+        MaterialPageRoute(
 
-                ),
+          builder: (_) => const ActionListScreen(),
 
-              );
+        ),
 
-            },
+      );
 
-          ),
+    },
 
-          ListTile(
+  ),
 
-            leading: const Icon(Icons.groups),
+          if (isApprover())
 
-            title: const Text("Employee Tour List"),
+  ListTile(
 
-            onTap: () {
+    leading: const Icon(Icons.groups),
 
-              Navigator.push(
+    title: const Text("Employee Tour List"),
 
-                context,
+    onTap: () {
 
-                MaterialPageRoute(
+      Navigator.push(
 
-                  builder: (_)=>const EmployeeTourListScreen(),
+        context,
 
-                ),
+        MaterialPageRoute(
 
-              );
+          builder: (_) => const EmployeeTourListScreen(),
 
-            },
+        ),
 
-          ),
+      );
 
-          ListTile(
+    },
 
-            leading: const Icon(Icons.local_taxi),
+  ),
 
-            title: const Text("Drivers Tour List"),
+          if (isVehicleIncharge())
+
+  ListTile(
+
+    leading: const Icon(Icons.local_taxi),
+
+    title: const Text("Drivers Tour List"),
 
             onTap: () {
 
