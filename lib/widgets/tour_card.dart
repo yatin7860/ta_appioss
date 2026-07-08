@@ -5,11 +5,13 @@ class TourCard extends StatelessWidget {
 
   final Map tour;
 
+  final List<Widget> children;
+
   const TourCard({
     super.key,
     required this.tour,
+    this.children = const [],
   });
-
   @override
   Widget build(BuildContext context) {
 
@@ -245,6 +247,11 @@ class TourCard extends StatelessWidget {
 
                 ),
                 const SizedBox(height: 15),
+
+                if (children.isNotEmpty) ...[
+                const SizedBox(height: 20),
+               ...children,
+                ],
 
                 SizedBox(
 
