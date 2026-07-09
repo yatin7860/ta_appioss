@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
 import 'start_tour_screen.dart';
-import 'tour_details_screen.dart';
+
 import '../widgets/tour_card.dart';
 
 class MyTourListScreen extends StatefulWidget {
@@ -250,8 +250,16 @@ class _MyTourListScreenState extends State<MyTourListScreen> {
                       itemBuilder: (context, index) {
                         final tour = filteredTours[index];
                         return TourCard(
-                          tour: tour,
-                        );
+
+                         tour: tour,
+
+                         children: [
+
+                         buildStartTourButton(tour),
+
+  ], 
+
+);
                       }
                   ),
                 ),
@@ -260,4 +268,83 @@ class _MyTourListScreenState extends State<MyTourListScreen> {
       ),
     );
   }
+  Widget buildStartTourButton(Map tour) {
+
+  // Show only after RI approval
+
+ if (tour["RI_STATUS"] != "APPROVE") {
+  return const SizedBox.shrink();
+}
+
+if (tour["CONFIRMATION_STATUS_"] != "PENDING") {
+  return const SizedBox.shrink();
+}
+
+  return SizedBox(
+
+    width: double.infinity,
+
+    child: ElevatedButton.icon(
+
+      icon: const Icon(
+        Icons.play_arrow,
+        color: Colors.white,
+      ),
+
+      style: ElevatedButton.styleFrom(
+
+        backgroundColor: const Color(0xff1E2F5B),
+
+        padding: const EdgeInsets.symmetric(
+          vertical: 15,
+        ),
+
+        shape: RoundedRectangleBorder(
+
+          borderRadius:
+              BorderRadius.circular(14),
+
+        ),
+
+      ),
+
+      onPressed: () {
+
+        Navigator.push(
+
+          context,
+
+          MaterialPageRoute(
+
+           builder: (_) => StartTourScreen(
+  tourId: tour["TOUR_ID"].toString(),
+),
+
+          ),
+
+        );
+
+      },
+
+      label: const Text(
+
+        "Start Tour",
+
+        style: TextStyle(
+
+          color: Colors.white,
+
+          fontSize: 17,
+
+          fontWeight: FontWeight.bold,
+
+        ),
+
+      ),
+
+    ),
+
+  );
+
+}
 }

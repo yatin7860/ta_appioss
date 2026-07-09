@@ -17,7 +17,14 @@ import 'package:flutter/services.dart';
 import 'dart:io';
 
 class StartTourScreen extends StatefulWidget {
-  const StartTourScreen({super.key});
+
+  final String tourId;
+
+  const StartTourScreen({
+    super.key,
+    required this.tourId,
+  });
+
 
   @override
   State<StartTourScreen> createState() =>

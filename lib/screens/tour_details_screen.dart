@@ -594,7 +594,7 @@ rowItem(
 
         rowItem(
   "Project Incharge",
-  profile?["PI_INCHARGE"] ?? "-",
+  tour?["PI_EMAIL"] ?? "-",
 ),
 
 rowItem(

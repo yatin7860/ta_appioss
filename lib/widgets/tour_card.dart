@@ -246,12 +246,7 @@ class TourCard extends StatelessWidget {
                   ],
 
                 ),
-                const SizedBox(height: 15),
-
-                if (children.isNotEmpty) ...[
-                const SizedBox(height: 20),
-               ...children,
-                ],
+            
 
                 SizedBox(
 
@@ -326,7 +321,12 @@ class TourCard extends StatelessWidget {
                   ),
 
                 ),
+                const SizedBox(height: 15),
 
+                if (children.isNotEmpty) ...[
+                const SizedBox(height: 20),
+               ...children,
+                ],
               ]
           ),
 
