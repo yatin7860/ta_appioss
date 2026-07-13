@@ -13,7 +13,7 @@ class ApiService {
       ) async {
 
     var url = Uri.parse(
-      "http://192.168.1.99:8090/prsc_ta/authenticateApi",
+      "http://192.168.1.10:8080/prsc_ta/authenticateApi",
     );
 
     var request =
@@ -91,7 +91,7 @@ class ApiService {
     try {
 
       var url = Uri.parse(
-        "http://192.168.1.99:8090/prsc_ta/changePasswordApi",
+        "http://192.168.1.10:8080/prsc_ta/changePasswordApi",
       );
 
       var request =
@@ -218,7 +218,7 @@ class ApiService {
       // ================= API =================
 
       var url = Uri.parse(
-        "http://192.168.1.99:8090/prsc_ta/userprofileApi",
+        "http://192.168.1.10:8080/prsc_ta/userprofileApi",
       );
 
       String logId =
@@ -362,7 +362,7 @@ getTourDropdownData() async {
       print("COOKIE FOUND : $cookie");
 
       var url = Uri.parse(
-        "http://192.168.1.99:8090/prsc_ta/inserttourApi",
+        "http://192.168.1.10:8080/prsc_ta/inserttourApi",
       );
 
       var request = http.MultipartRequest(
@@ -495,7 +495,7 @@ getTourDropdownData() async {
       print("MY TOUR LIST LOG ID : $logId");
 
       var url = Uri.parse(
-        "http://192.168.1.99:8090/prsc_ta/mytourlistApi",
+        "http://192.168.1.10:8080/prsc_ta/mytourlistApi",
       );
 
       var request = http.MultipartRequest(
@@ -535,7 +535,7 @@ static Future<Map<String, dynamic>?> getTourDetails(
   try {
 
     var url = Uri.parse(
-      "http://192.168.1.99:8090/prsc_ta/longtour",
+      "http://192.168.1.10:8080/prsc_ta/longtour",
     );
 
     var request = http.MultipartRequest(
@@ -579,7 +579,7 @@ static Future<Map<String, dynamic>?> getActionList() async {
     String logId = prefs.getString("log_id") ?? "";
 
     var url = Uri.parse(
-      "http://192.168.1.99:8090/prsc_ta/actionlistApi",
+      "http://192.168.1.10:8080/prsc_ta/actionlistApi",
     );
 
     var request = http.MultipartRequest(
@@ -637,7 +637,7 @@ static Future<Map<String, dynamic>?> approveTour({
 
     var url = Uri.parse(
 
-      "http://192.168.1.99:8090/prsc_ta/approvelApi",
+      "http://192.168.1.10:8080/prsc_ta/approvelApi",
 
     );
 
@@ -704,7 +704,7 @@ static Future<Map<String, dynamic>?> approveTour({
     print("COOKIE : $cookie");
 
     var url = Uri.parse(
-      "http://192.168.1.99:8090/prsc_ta/employeetourlistApi",
+      "http://192.168.1.10:8080/prsc_ta/employeetourlistApi",
     );
 
     print("URL : $url");
@@ -795,7 +795,7 @@ static Future<Map<String,dynamic>?> confirmJourney({
 
     var url = Uri.parse(
 
-      "http://192.168.1.99:8090/prsc_ta/confirmJourneyApi",
+      "http://192.168.1.10:8080/prsc_ta/confirmJourneyApi",
 
     );
 

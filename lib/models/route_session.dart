@@ -1,44 +1,120 @@
 class RouteSession {
 
+  /// Tour ID from backend
+  final String tourId;
+
+  /// Unique session id
   final String sessionId;
 
+  /// Tour start time
   final DateTime startTime;
 
+  /// Tour end time
   final DateTime? endTime;
 
-  final double totalDistance;
+  /// Current status
+  final bool isRunning;
+
+  /// Pause status
+  final bool isPaused;
+
+  /// Last uploaded location index
+  final int lastUploadedIndex;
+
+  /// Total locations stored
+  final int totalPoints;
 
   RouteSession({
+    required this.tourId,
     required this.sessionId,
     required this.startTime,
     this.endTime,
-    required this.totalDistance,
+    required this.isRunning,
+    required this.isPaused,
+    required this.lastUploadedIndex,
+    required this.totalPoints,
   });
 
   Map<String, dynamic> toJson() {
     return {
+      "tourId": tourId,
       "sessionId": sessionId,
-      "startTime": startTime.toIso8601String(),
-      "endTime": endTime?.toIso8601String(),
-      "totalDistance": totalDistance,
+      "startTime": startTime.millisecondsSinceEpoch,
+      "endTime": endTime?.millisecondsSinceEpoch,
+      "isRunning": isRunning,
+      "isPaused": isPaused,
+      "lastUploadedIndex": lastUploadedIndex,
+      "totalPoints": totalPoints,
     };
   }
 
   factory RouteSession.fromJson(
-      Map data,
-      ) {
+      Map<dynamic, dynamic> json) {
+
     return RouteSession(
-      sessionId: data["sessionId"],
-      startTime: DateTime.parse(
-        data["startTime"],
+
+      tourId: json["tourId"],
+
+      sessionId: json["sessionId"],
+
+      startTime:
+      DateTime.fromMillisecondsSinceEpoch(
+        json["startTime"],
       ),
-      endTime: data["endTime"] == null
+
+      endTime: json["endTime"] == null
           ? null
-          : DateTime.parse(
-        data["endTime"],
+          : DateTime.fromMillisecondsSinceEpoch(
+        json["endTime"],
       ),
-      totalDistance:
-      data["totalDistance"],
+
+      isRunning: json["isRunning"] ?? false,
+
+      isPaused: json["isPaused"] ?? false,
+
+      lastUploadedIndex:
+      json["lastUploadedIndex"] ?? 0,
+
+      totalPoints:
+      json["totalPoints"] ?? 0,
+    );
+  }
+
+  RouteSession copyWith({
+
+    DateTime? endTime,
+
+    bool? isRunning,
+
+    bool? isPaused,
+
+    int? lastUploadedIndex,
+
+    int? totalPoints,
+
+  }) {
+
+    return RouteSession(
+
+      tourId: tourId,
+
+      sessionId: sessionId,
+
+      startTime: startTime,
+
+      endTime: endTime ?? this.endTime,
+
+      isRunning: isRunning ?? this.isRunning,
+
+      isPaused: isPaused ?? this.isPaused,
+
+      lastUploadedIndex:
+      lastUploadedIndex ??
+          this.lastUploadedIndex,
+
+      totalPoints:
+      totalPoints ??
+          this.totalPoints,
     );
   }
 }

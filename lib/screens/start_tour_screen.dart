@@ -6,12 +6,15 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:math' as math;
+import '../services/location_sync_service.dart';
+import '../services/network_service.dart';
+import '../services/retry_service.dart';
 
 import '../location_task_handler.dart';
 import '../models/location_point.dart';
 import '../services/tracking_storage_service.dart';
 import 'package:uuid/uuid.dart';
-import '../services/session_service.dart';
+
 import '../services/tour_state_service.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
@@ -45,9 +48,12 @@ class _StartTourScreenState
 
   List<LatLng> route = [];
 
+
   bool isStarted = false;
 
   bool isPaused = false;
+
+  bool syncing = false;
   
   bool followUser = true;
 
@@ -70,6 +76,7 @@ Animation<LatLng>? locationAnimation;
 
   StreamSubscription<Position>?
   positionStream;
+  Timer? syncTimer;
 
   final MapController mapController =
   MapController();
@@ -89,20 +96,45 @@ Animation<LatLng>? locationAnimation;
   ),
 );
 
-    loadInitialLocation();
+    initializeTour();
+  }
+  Future<void> initializeTour() async {
 
-    restorePreviousSession();
-    
-    restoreTourState();
+    debugPrint("Initializing Tour...");
+
+    await loadInitialLocation();
+
+    await restoreTourState();
+
+    await restorePreviousSession();
+
+    debugPrint("Initialization Complete");
+
   }
 
   @override
-void dispose() {
+  void dispose() {
 
-  // DO NOT STOP TRACKING HERE
-  animationController?.dispose();
-  super.dispose();
-}
+    // Stop GPS Stream
+    positionStream?.cancel();
+
+    // Stop Sync Timer
+    syncTimer?.cancel();
+
+    RetryService.retryTimer?.cancel();
+
+    // Stop Network Listener
+    NetworkService.stopListening();
+    debugPrint(
+      "Resources Disposed",
+    );
+
+    // Dispose Animation
+    animationController?.dispose();
+
+    super.dispose();
+
+  }
 
   // ================= LOAD INITIAL LOCATION =================
 
@@ -198,31 +230,32 @@ void dispose() {
 }
 
   Future<void> restorePreviousSession() async {
+
     try {
 
-      final sessionId =
-      SessionService.getActiveSession();
-
-      if (sessionId == null) {
-        return;
-      }
-
       final points =
-      TrackingStorageService
-          .getSessionPoints(
-          sessionId);
+      TrackingStorageService.getTourPoints(
+        widget.tourId,
+      );
+
+      debugPrint(
+        "Recovered ${points.length} locations",
+      );
 
       if (points.isEmpty) {
         return;
       }
 
-      currentSessionId = sessionId;
+      currentSessionId =
+          points.first.sessionId;
 
       route = points.map((e) {
+
         return LatLng(
           e.latitude,
           e.longitude,
         );
+
       }).toList();
 
       currentLocation = route.last;
@@ -232,45 +265,293 @@ void dispose() {
       if (!mounted) return;
 
       setState(() {
+
         isStarted = true;
+
         isPaused = false;
+
       });
 
       debugPrint(
-        "Recovered session: $sessionId",
+        "Recovered Session : $currentSessionId",
+      );
+
+      debugPrint(
+        "Route Restored Successfully",
       );
 
     } catch (e) {
 
       debugPrint(
-        "RESTORE ERROR: $e",
+        "RESTORE ERROR : $e",
       );
+
     }
+
   }
   Future<void> restoreTourState() async {
 
-  final running =
-      await TourStateService.isRunning();
+    final session =
+    await TourStateService.getCurrentSession();
 
-  if (!running) {
-    return;
+    if (session == null) {
+      debugPrint(
+          "No Active Tour Found");
+      return;
+    }
+
+    currentSessionId = session.sessionId;
+    debugPrint(
+        "Session Restored : ${session.sessionId}");
+
+    if (!mounted) return;
+
+    setState(() {
+
+      isStarted = session.isRunning;
+
+      isPaused = session.isPaused;
+
+    });
+
+    if (session.isRunning && !session.isPaused) {
+
+      debugPrint("Restarting Active Tour");
+
+      startUploadTimer();
+
+      startNetworkListener();
+
+      startLocationStream();
+      debugPrint(
+        "Tour Restored Successfully",
+      );
+
+      if (Platform.isAndroid) {
+
+        await FlutterForegroundTask.startService(
+
+          notificationTitle: "Tour Tracking Active",
+
+          notificationText: "Background tracking running",
+
+          callback: startCallback,
+
+        );
+
+      }
+
+    }
+  }
+  //
+  void startUploadTimer() {
+
+    syncTimer?.cancel();
+
+    syncTimer = Timer.periodic(
+
+      const Duration(
+        minutes: 2,
+      ),
+
+          (_) async {
+
+        if (!mounted) return;
+
+        setState(() {
+          syncing = true;
+        });
+
+        await LocationSyncService.uploadLocations();
+
+        if (!mounted) return;
+
+        setState(() {
+          syncing = false;
+        });
+
+      },
+
+    );
+
+    debugPrint("Upload Timer Started");
+
+  }
+  //
+  void startNetworkListener() {
+
+    // Prevent duplicate listeners
+    NetworkService.stopListening();
+
+    NetworkService.startListening(() async {
+
+      if (!mounted) return;
+
+      setState(() {
+        syncing = true;
+      });
+
+      debugPrint("Internet Connected");
+
+      await LocationSyncService.uploadLocations();
+
+      if (!mounted) return;
+
+      setState(() {
+        syncing = false;
+      });
+
+    });
+
+    debugPrint("Network Listener Started");
+
   }
 
-  if (!mounted) return;
+  //
 
-  setState(() {
+  void startLocationStream() {
 
-    isStarted = true;
+    positionStream?.cancel();
 
-    isPaused = false;
-  });
+    positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.best,
+            distanceFilter: 5,
+          ),
+        ).listen(
+              (Position position) async {
 
-  debugPrint(
-    "Tour restored after reopen",
-  );
+            try {
 
-  startTour();
-}
+              final LatLng newPoint = LatLng(
+
+                position.latitude,
+
+                position.longitude,
+
+              );
+
+              // ================= ROTATION =================
+
+              if (previousPoint != null) {
+
+                final dx =
+                    newPoint.longitude -
+                        previousPoint!.longitude;
+
+                final dy =
+                    newPoint.latitude -
+                        previousPoint!.latitude;
+
+                markerRotation =
+                    math.atan2(dx, dy);
+
+                mapRotation =
+                    markerRotation * 57.2958;
+
+              }
+
+              previousPoint = newPoint;
+
+              // ================= SAVE TO HIVE =================
+
+              if (currentSessionId == null) {
+
+                debugPrint("Session is null");
+
+                return;
+
+              }
+
+              final point = LocationPoint(
+
+                tourId: widget.tourId,
+
+                sessionId: currentSessionId!,
+
+                latitude: position.latitude,
+
+                longitude: position.longitude,
+
+                address: "",
+
+                pauseStatus: isPaused,
+
+                index: route.length,
+
+                accuracy: position.accuracy,
+
+                speed: position.speed,
+
+                timestamp: DateTime.now(),
+
+              );
+
+              debugPrint(
+                "Saving point for session : $currentSessionId",
+              );
+
+              await TrackingStorageService.savePoint(
+                point,
+              );
+
+              if (!mounted) return;
+
+              setState(() {
+
+                route.add(newPoint);
+
+                currentLocation = newPoint;
+
+                if (route.length > 1) {
+
+                  totalDistance +=
+                      Geolocator.distanceBetween(
+
+                        route[route.length - 2].latitude,
+
+                        route[route.length - 2].longitude,
+
+                        newPoint.latitude,
+
+                        newPoint.longitude,
+
+                      );
+
+                }
+
+              });
+
+              if (followUser) {
+
+                mapController.move(
+
+                  newPoint,
+
+                  17,
+
+                );
+
+              }
+
+            } catch (e) {
+
+              debugPrint(
+                "TRACKING ERROR : $e",
+              );
+
+            }
+
+          },
+
+        );
+
+    debugPrint(
+      "GPS Tracking Started",
+    );
+
+  }
 
 // ================= START TOUR =================
 
@@ -324,8 +605,18 @@ Future<void> startTour() async {
 
     // START FOREGROUND SERVICE
 
+    final sessionId = currentSessionId ?? const Uuid().v4();
 
-      await TourStateService.setRunning(true);
+
+    currentSessionId = sessionId;
+
+    await TourStateService.startTour(
+
+      tourId: widget.tourId,
+
+      sessionId: sessionId,
+
+    );
 
       if (Platform.isAndroid) {
 
@@ -343,8 +634,6 @@ Future<void> startTour() async {
 
     // RESET TOUR DATA
 
-    currentSessionId ??=
-    const Uuid().v4();
 
     debugPrint(
       "SESSION ID: $currentSessionId",
@@ -360,95 +649,12 @@ Future<void> startTour() async {
 
     await positionStream?.cancel();
 
-    // START LIVE TRACKING
-
-    positionStream =
-        Geolocator.getPositionStream(
-      locationSettings:
-          const LocationSettings(
-        accuracy: LocationAccuracy.best,
-        distanceFilter: 5,
-      ),
-    ).listen(
-      (Position position) async {
-        try {
-    final LatLng newPoint = LatLng(
-
-  position.latitude,
-
-  position.longitude,
-);
-
-// ================= ROTATION =================
-
-if (previousPoint != null) {
-
-  final dx =
-      newPoint.longitude -
-      previousPoint!.longitude;
-
-  final dy =
-      newPoint.latitude -
-      previousPoint!.latitude;
-
-  markerRotation =
-      math.atan2(dx, dy);
-  mapRotation =
-    markerRotation * 57.2958;
-}
-
-previousPoint = newPoint;
-
-          // SAVE TO LOCAL STORAGE
-
-          final point = LocationPoint(
-            sessionId: currentSessionId!,
-            latitude: position.latitude,
-            longitude: position.longitude,
-            accuracy: position.accuracy,
-            speed: position.speed,
-            timestamp: DateTime.now(),
-          );
-          debugPrint(
-            "Saving point for session: $currentSessionId",
-          );
-
-          await TrackingStorageService
-              .savePoint(point);
-
-          if (!mounted) return;
-
-          setState(() {
-            route.add(newPoint);
-
-            currentLocation = newPoint;
-
-            if (route.length > 1) {
-              totalDistance +=
-                  Geolocator.distanceBetween(
-                route[route.length - 2]
-                    .latitude,
-                route[route.length - 2]
-                    .longitude,
-                newPoint.latitude,
-                newPoint.longitude,
-              );
-            }
-          });
-
- if (followUser) {
-
-  mapController.move(
-    newPoint,
-    17,
-  );
-}
-        } catch (e) {
-          debugPrint(
-            "TRACKING ERROR: $e",
-          );
-        }
-      },
+    startUploadTimer();
+    startNetworkListener();
+    // Start GPS tracking
+    startLocationStream();
+    debugPrint(
+      "Live Tracking Started",
     );
 
     if (!mounted) return;
@@ -475,13 +681,16 @@ previousPoint = newPoint;
 
   // ================= PAUSE =================
 
-  void pauseTour() {
+  Future<void> pauseTour() async {
 
     positionStream?.pause();
+
+    await TourStateService.pauseTour();
 
     setState(() {
 
       isPaused = true;
+
     });
 
     ScaffoldMessenger.of(context)
@@ -496,14 +705,18 @@ previousPoint = newPoint;
 
   // ================= RESUME =================
 
-  void resumeTour() {
+  Future<void> resumeTour() async {
 
     positionStream?.resume();
+
+    await TourStateService.resumeTour();
 
     setState(() {
 
       isPaused = false;
+
     });
+
 
     ScaffoldMessenger.of(context)
         .showSnackBar(
@@ -518,11 +731,45 @@ previousPoint = newPoint;
   // ================= STOP =================
 
   Future<void> stopTour() async {
-  
-  await TourStateService.setRunning(false);
+
+    await TourStateService.stopTour();
+
+    currentSessionId = null;
 
     try {
+      syncTimer?.cancel();
+      RetryService.retryTimer?.cancel();
+      await NetworkService.stopListening();
 
+      if (mounted) {
+
+        setState(() {
+          syncing = true;
+        });
+
+      }
+
+      while (TrackingStorageService
+          .getPendingPoints()
+          .isNotEmpty) {
+
+        final success =
+        await LocationSyncService.uploadLocations();
+        await TrackingStorageService.removeUploaded();
+
+        if (!success) {
+          break;
+        }
+
+      }
+
+      if (mounted) {
+
+        setState(() {
+          syncing = false;
+        });
+
+      }
       await positionStream?.cancel();
       await platform.invokeMethod(
         'stopTracking',
@@ -530,10 +777,10 @@ previousPoint = newPoint;
 
       // ================= STOP FOREGROUND SERVICE =================
 
-      await FlutterForegroundTask
-          .stopService();
-      await SessionService
-          .clearSession();
+      if (Platform.isAndroid) {
+        await FlutterForegroundTask.stopService();
+      }
+
 
       if (!mounted) return;
 
@@ -612,6 +859,59 @@ Widget build(BuildContext context) {
 
         children: [
 
+          // ================= SYNC INDICATOR =================
+
+          if (syncing)
+
+            Container(
+
+              width: double.infinity,
+
+              padding: const EdgeInsets.all(10),
+
+              color: Colors.green,
+
+              child: const Row(
+
+                children: [
+
+                  SizedBox(
+
+                    width: 18,
+
+                    height: 18,
+
+                    child: CircularProgressIndicator(
+
+                      strokeWidth: 2,
+
+                      color: Colors.white,
+
+                    ),
+
+                  ),
+
+                  SizedBox(width: 12),
+
+                  Text(
+
+                    "Uploading location data...",
+
+                    style: TextStyle(
+
+                      color: Colors.white,
+
+                      fontWeight: FontWeight.bold,
+
+                    ),
+
+                  ),
+
+                ],
+
+              ),
+
+            ),
           // ================= MAP =================
 
           Expanded(
