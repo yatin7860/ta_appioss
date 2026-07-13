@@ -100,6 +100,9 @@ class LocationSyncService {
         await TrackingStorageService
             .removeUploaded();
 
+        debugPrint(
+            "Pending : ${TrackingStorageService.pendingCount()}");
+
         // Reset retry counter
         RetryService.reset();
 

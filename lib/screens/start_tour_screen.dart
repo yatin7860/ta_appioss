@@ -9,14 +9,14 @@ import 'dart:math' as math;
 import '../services/location_sync_service.dart';
 import '../services/network_service.dart';
 import '../services/retry_service.dart';
+import '../taskhandler/location_task_handler.dart';
 
-import '../location_task_handler.dart';
 import '../models/location_point.dart';
 import '../services/tracking_storage_service.dart';
 import 'package:uuid/uuid.dart';
 
 import '../services/tour_state_service.dart';
-import 'package:flutter/services.dart';
+
 import 'dart:io';
 
 class StartTourScreen extends StatefulWidget {
@@ -34,10 +34,10 @@ class StartTourScreen extends StatefulWidget {
       _StartTourScreenState();
 }
 
-class _StartTourScreenState
-    extends State<StartTourScreen>
-    with TickerProviderStateMixin {
-    
+class _StartTourScreenState extends State<StartTourScreen>
+    with TickerProviderStateMixin,
+        WidgetsBindingObserver {
+
   // ================= VARIABLES =================
 
   LatLng? currentLocation;
@@ -54,25 +54,30 @@ class _StartTourScreenState
   bool isPaused = false;
 
   bool syncing = false;
-  
+
+
+  int uploadedCount = 0;
+
+  int pendingLocations = 0;
+
   bool followUser = true;
 
   double totalDistance = 0;
 
   double markerRotation = 0;
-  
+
   double mapRotation = 0;
 
   LatLng? previousPoint;
-  
+
+  LatLng? lastSavedPoint;
+
   // ================= ANIMATION =================
 
-AnimationController? animationController;
+  AnimationController? animationController;
 
-Animation<LatLng>? locationAnimation;
+  Animation<LatLng>? locationAnimation;
 
-  static const platform =
-  MethodChannel('native/location');
 
   StreamSubscription<Position>?
   positionStream;
@@ -86,15 +91,16 @@ Animation<LatLng>? locationAnimation;
   @override
   void initState() {
     super.initState();
-    
+    WidgetsBinding.instance.addObserver(this);
+
     animationController = AnimationController(
 
       vsync: this,
 
       duration: const Duration(
-      milliseconds: 800,
-  ),
-);
+        milliseconds: 800,
+      ),
+    );
 
     initializeTour();
   }
@@ -115,6 +121,7 @@ Animation<LatLng>? locationAnimation;
   @override
   void dispose() {
 
+    WidgetsBinding.instance.removeObserver(this);
     // Stop GPS Stream
     positionStream?.cancel();
 
@@ -136,17 +143,141 @@ Animation<LatLng>? locationAnimation;
 
   }
 
+  @override
+  void didChangeAppLifecycleState(
+      AppLifecycleState state) {
+
+    debugPrint(
+        "Lifecycle : $state");
+
+    switch (state) {
+
+      case AppLifecycleState.resumed:
+
+        debugPrint("App Resumed");
+
+        if (isStarted && !isPaused) {
+
+          startUploadTimer();
+
+          startNetworkListener();
+
+          startLocationStream();
+
+        }
+
+        break;
+
+      case AppLifecycleState.paused:
+
+        debugPrint("App Paused");
+
+        break;
+
+      case AppLifecycleState.detached:
+
+        debugPrint("App Detached");
+
+        break;
+
+      case AppLifecycleState.inactive:
+
+        debugPrint("App Inactive");
+
+        break;
+
+      case AppLifecycleState.hidden:
+
+        debugPrint("App Hidden");
+
+        break;
+
+    }
+
+  }
+
   // ================= LOAD INITIAL LOCATION =================
 
   Future<void> loadInitialLocation() async {
-  try {
-    bool serviceEnabled =
-        await Geolocator.isLocationServiceEnabled();
+    try {
+      bool serviceEnabled =
+      await Geolocator.isLocationServiceEnabled();
 
-    if (!serviceEnabled) {
-      debugPrint("Location service disabled");
+      if (!serviceEnabled) {
+        debugPrint("Location service disabled");
 
-      const fallback = LatLng(30.7333, 76.7794);
+        const fallback = LatLng(30.7333, 76.7794);
+
+        if (!mounted) return;
+
+        setState(() {
+          currentLocation = fallback;
+          startPoint = fallback;
+          route = [fallback];
+        });
+
+        return;
+      }
+
+      LocationPermission permission =
+      await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission =
+        await Geolocator.requestPermission();
+      }
+
+      if (permission ==
+          LocationPermission.denied ||
+          permission ==
+              LocationPermission.deniedForever) {
+
+        debugPrint("Location permission denied");
+
+        const fallback = LatLng(30.7333, 76.7794);
+
+        if (!mounted) return;
+
+        setState(() {
+          currentLocation = fallback;
+          startPoint = fallback;
+          route = [fallback];
+        });
+
+        return;
+      }
+
+      Position position =
+      await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      ).timeout(
+        const Duration(seconds: 10),
+      );
+
+      final location = LatLng(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        currentLocation = location;
+        startPoint = location;
+        route = [location];
+      });
+
+      debugPrint(
+        "Location Loaded: ${position.latitude}, ${position.longitude}",
+      );
+
+    } catch (e) {
+      debugPrint("INITIAL LOCATION ERROR: $e");
+
+      const fallback = LatLng(
+        30.7333,
+        76.7794,
+      );
 
       if (!mounted) return;
 
@@ -155,79 +286,8 @@ Animation<LatLng>? locationAnimation;
         startPoint = fallback;
         route = [fallback];
       });
-
-      return;
     }
-
-    LocationPermission permission =
-        await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      permission =
-          await Geolocator.requestPermission();
-    }
-
-    if (permission ==
-            LocationPermission.denied ||
-        permission ==
-            LocationPermission.deniedForever) {
-
-      debugPrint("Location permission denied");
-
-      const fallback = LatLng(30.7333, 76.7794);
-
-      if (!mounted) return;
-
-      setState(() {
-        currentLocation = fallback;
-        startPoint = fallback;
-        route = [fallback];
-      });
-
-      return;
-    }
-
-    Position position =
-    await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    ).timeout(
-      const Duration(seconds: 10),
-    );
-
-    final location = LatLng(
-      position.latitude,
-      position.longitude,
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      currentLocation = location;
-      startPoint = location;
-      route = [location];
-    });
-
-    debugPrint(
-      "Location Loaded: ${position.latitude}, ${position.longitude}",
-    );
-
-  } catch (e) {
-    debugPrint("INITIAL LOCATION ERROR: $e");
-
-    const fallback = LatLng(
-      30.7333,
-      76.7794,
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      currentLocation = fallback;
-      startPoint = fallback;
-      route = [fallback];
-    });
   }
-}
 
   Future<void> restorePreviousSession() async {
 
@@ -368,13 +428,18 @@ Animation<LatLng>? locationAnimation;
 
         setState(() {
           syncing = false;
+
+          pendingLocations =
+              TrackingStorageService.pendingCount();
         });
 
       },
 
     );
 
-    debugPrint("Upload Timer Started");
+    debugPrint(
+      "Upload Timer Started",
+    );
 
   }
   //
@@ -385,13 +450,13 @@ Animation<LatLng>? locationAnimation;
 
     NetworkService.startListening(() async {
 
+      debugPrint("Internet Connected");
+
       if (!mounted) return;
 
       setState(() {
         syncing = true;
       });
-
-      debugPrint("Internet Connected");
 
       await LocationSyncService.uploadLocations();
 
@@ -399,14 +464,18 @@ Animation<LatLng>? locationAnimation;
 
       setState(() {
         syncing = false;
+
+        pendingLocations =
+            TrackingStorageService.pendingCount();
       });
 
     });
 
-    debugPrint("Network Listener Started");
+    debugPrint(
+      "Network Listener Started",
+    );
 
   }
-
   //
 
   void startLocationStream() {
@@ -424,6 +493,28 @@ Animation<LatLng>? locationAnimation;
 
             try {
 
+              // ================= SPEED FILTER =================
+
+              if (position.speed > 45) {
+
+                debugPrint(
+                  "Ignored - Invalid Speed : ${position.speed}",
+                );
+
+                return;
+
+              }
+
+              // Ignore poor GPS accuracy
+              if (position.accuracy > 30) {
+
+                debugPrint(
+                    "Ignored - Accuracy : ${position.accuracy}");
+
+                return;
+
+              }
+
               final LatLng newPoint = LatLng(
 
                 position.latitude,
@@ -432,6 +523,44 @@ Animation<LatLng>? locationAnimation;
 
               );
 
+              if (lastSavedPoint != null) {
+
+                final distance =
+                Geolocator.distanceBetween(
+
+                  lastSavedPoint!.latitude,
+
+                  lastSavedPoint!.longitude,
+
+                  newPoint.latitude,
+
+                  newPoint.longitude,
+
+                );
+
+                // Ignore duplicate points
+                if (distance < 5) {
+
+                  debugPrint(
+                    "Duplicate Point Ignored",
+                  );
+
+                  return;
+
+                }
+
+                // Ignore unrealistic GPS jumps
+                if (distance > 200) {
+
+                  debugPrint(
+                    "GPS Jump Ignored : $distance meters",
+                  );
+
+                  return;
+
+                }
+
+              }
               // ================= ROTATION =================
 
               if (previousPoint != null) {
@@ -492,9 +621,21 @@ Animation<LatLng>? locationAnimation;
                 "Saving point for session : $currentSessionId",
               );
 
-              await TrackingStorageService.savePoint(
-                point,
-              );
+              await TrackingStorageService.savePoint(point);
+
+              if (mounted) {
+
+                setState(() {
+
+                  pendingLocations =
+                      TrackingStorageService.pendingCount();
+
+                });
+
+              }
+
+// Update last saved point
+              lastSavedPoint = newPoint;
 
               if (!mounted) return;
 
@@ -555,129 +696,124 @@ Animation<LatLng>? locationAnimation;
 
 // ================= START TOUR =================
 
-Future<void> startTour() async {
-  try {
-    bool serviceEnabled =
-        await Geolocator.isLocationServiceEnabled();
+  Future<void> startTour() async {
+    try {
+      bool serviceEnabled =
+      await Geolocator.isLocationServiceEnabled();
 
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enable location"),
-        ),
-      );
-      return;
-    }
-
-    LocationPermission permission =
-        await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      permission =
-          await Geolocator.requestPermission();
-    }
-
-    if (permission ==
-            LocationPermission.denied ||
-        permission ==
-            LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Location permission denied",
+      if (!serviceEnabled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please enable location"),
           ),
-        ),
+        );
+        return;
+      }
+
+      LocationPermission permission =
+      await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission =
+        await Geolocator.requestPermission();
+      }
+
+      if (permission ==
+          LocationPermission.denied ||
+          permission ==
+              LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Location permission denied",
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (currentLocation == null) {
+        return;
+      }
+      await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
       );
-      return;
-    }
 
-    if (currentLocation == null) {
-      return;
-    }
+      // START FOREGROUND SERVICE
+
+      final sessionId = currentSessionId ?? const Uuid().v4();
 
 
-    await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-    await platform.invokeMethod(
-      'startTracking',
-    );
+      currentSessionId = sessionId;
 
-    // START FOREGROUND SERVICE
+      await TourStateService.startTour(
 
-    final sessionId = currentSessionId ?? const Uuid().v4();
+        tourId: widget.tourId,
 
+        sessionId: sessionId,
 
-    currentSessionId = sessionId;
-
-    await TourStateService.startTour(
-
-      tourId: widget.tourId,
-
-      sessionId: sessionId,
-
-    );
+      );
 
       if (Platform.isAndroid) {
 
-      await FlutterForegroundTask.startService(
+        await FlutterForegroundTask.startService(
 
-        notificationTitle:
-        'Tour Tracking Active',
+          notificationTitle:
+          'Tour Tracking Active',
 
-        notificationText:
-        'Background tracking running',
+          notificationText:
+          'Background tracking running',
 
-        callback: startCallback,
+          callback: startCallback,
+        );
+      }
+
+      // RESET TOUR DATA
+
+
+      debugPrint(
+        "SESSION ID: $currentSessionId",
+      );
+
+      startPoint = currentLocation;
+
+      route = [currentLocation!];
+
+      totalDistance = 0;
+
+      // CANCEL OLD STREAM
+
+      await positionStream?.cancel();
+
+      startUploadTimer();
+      startNetworkListener();
+      // Start GPS tracking
+      startLocationStream();
+      debugPrint(
+        "Live Tracking Started",
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        isStarted = true;
+        isPaused = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Tour Started",
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint(
+        "START TOUR ERROR: $e",
       );
     }
-
-    // RESET TOUR DATA
-
-
-    debugPrint(
-      "SESSION ID: $currentSessionId",
-    );
-
-    startPoint = currentLocation;
-
-    route = [currentLocation!];
-
-    totalDistance = 0;
-
-    // CANCEL OLD STREAM
-
-    await positionStream?.cancel();
-
-    startUploadTimer();
-    startNetworkListener();
-    // Start GPS tracking
-    startLocationStream();
-    debugPrint(
-      "Live Tracking Started",
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      isStarted = true;
-      isPaused = false;
-    });
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      const SnackBar(
-        content: Text(
-          "Tour Started",
-        ),
-      ),
-    );
-  } catch (e) {
-    debugPrint(
-      "START TOUR ERROR: $e",
-    );
   }
-}
 
   // ================= PAUSE =================
 
@@ -755,13 +891,21 @@ Future<void> startTour() async {
 
         final success =
         await LocationSyncService.uploadLocations();
-        await TrackingStorageService.removeUploaded();
 
         if (!success) {
+
+          debugPrint(
+            "Upload failed. Remaining locations kept in Hive.",
+          );
+
           break;
+
         }
 
       }
+      debugPrint(
+        "Pending Locations : ${TrackingStorageService.pendingCount()}",
+      );
 
       if (mounted) {
 
@@ -771,9 +915,6 @@ Future<void> startTour() async {
 
       }
       await positionStream?.cancel();
-      await platform.invokeMethod(
-        'stopTracking',
-      );
 
       // ================= STOP FOREGROUND SERVICE =================
 
@@ -813,497 +954,559 @@ Future<void> startTour() async {
 
 //----ui----
 
-@override
-Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
 
-  return PopScope(
+    return PopScope(
 
-    canPop: false,
+      canPop: false,
 
-     onPopInvokedWithResult: (
-    didPop,
-    result,
-)
-{
+      onPopInvokedWithResult: (
+          didPop,
+          result,
+          )
+      {
 
-  Navigator.pop(context);
-},
+        Navigator.pop(context);
+      },
 
-    child: Scaffold(
+      child: Scaffold(
 
-      appBar: AppBar(
+        appBar: AppBar(
 
-        leading: IconButton(
+          leading: IconButton(
 
-          icon: const Icon(
-            Icons.arrow_back,
+            icon: const Icon(
+              Icons.arrow_back,
+            ),
+
+            onPressed: () {
+
+              Navigator.pop(context);
+            },
           ),
 
-          onPressed: () {
+          title: const Text(
+            "Start Tour",
+          ),
 
-            Navigator.pop(context);
-          },
+          centerTitle: true,
+
+          backgroundColor:
+          const Color(0xFF1E2F5B),
         ),
 
-        title: const Text(
-          "Start Tour",
-        ),
+        body: Column(
 
-        centerTitle: true,
+          children: [
 
-        backgroundColor:
-            const Color(0xFF1E2F5B),
-      ),
+            // ================= SYNC INDICATOR =================
 
-      body: Column(
+            if (syncing)
 
-        children: [
+              Container(
 
-          // ================= SYNC INDICATOR =================
+                width: double.infinity,
 
-          if (syncing)
+                padding: const EdgeInsets.all(10),
 
-            Container(
+                color: Colors.green,
 
-              width: double.infinity,
+                child: const Row(
 
-              padding: const EdgeInsets.all(10),
+                  children: [
 
-              color: Colors.green,
+                    SizedBox(
 
-              child: const Row(
+                      width: 18,
+
+                      height: 18,
+
+                      child: CircularProgressIndicator(
+
+                        strokeWidth: 2,
+
+                        color: Colors.white,
+
+                      ),
+
+                    ),
+
+                    SizedBox(width: 12),
+
+                    Text(
+
+                      "Uploading location data...",
+
+                      style: TextStyle(
+
+                        color: Colors.white,
+
+                        fontWeight: FontWeight.bold,
+
+                      ),
+
+                    ),
+
+                  ],
+
+                ),
+
+              ),
+            // ================= MAP =================
+
+            Expanded(
+
+              child: currentLocation == null
+
+                  ? const Center(
+                child:
+                CircularProgressIndicator(),
+              )
+
+                  : Stack(
 
                 children: [
 
-                  SizedBox(
+                  FlutterMap(
 
-                    width: 18,
+                    mapController:
+                    mapController,
 
-                    height: 18,
+                    options: MapOptions(
 
-                    child: CircularProgressIndicator(
+                      initialCenter:
+                      currentLocation!,
 
-                      strokeWidth: 2,
+                      initialZoom: 15,
 
-                      color: Colors.white,
+                      interactionOptions:
+                      const InteractionOptions(
 
+                        flags:
+                        InteractiveFlag.all,
+                      ),
                     ),
-
-                  ),
-
-                  SizedBox(width: 12),
-
-                  Text(
-
-                    "Uploading location data...",
-
-                    style: TextStyle(
-
-                      color: Colors.white,
-
-                      fontWeight: FontWeight.bold,
-
-                    ),
-
-                  ),
-
-                ],
-
-              ),
-
-            ),
-          // ================= MAP =================
-
-          Expanded(
-
-            child: currentLocation == null
-
-                ? const Center(
-                    child:
-                        CircularProgressIndicator(),
-                  )
-
-                : Stack(
 
                     children: [
 
-                      FlutterMap(
+                      // ================= TILE =================
 
-                        mapController:
-                            mapController,
+                      TileLayer(
 
-                        options: MapOptions(
+                        urlTemplate:
+                        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
 
-                          initialCenter:
-                              currentLocation!,
-
-                          initialZoom: 15,
-
-                          interactionOptions:
-                              const InteractionOptions(
-
-                            flags:
-                                InteractiveFlag.all,
-                          ),
-                        ),
-
-                        children: [
-
-                          // ================= TILE =================
-
-                          TileLayer(
-
-                            urlTemplate:
-                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-
-                            userAgentPackageName:
-                                "com.taappios.app",
-                          ),
-
-                          // ================= ROUTE =================
-                          if (route.length > 1)
-
-                            PolylineLayer(
-
-                              polylines: [
-
-                                Polyline(
-
-                                  points: route,
-
-                                  strokeWidth: 8,
-
-                                  color: Colors.blueAccent,
-
-                                  borderStrokeWidth: 2,
-
-                                  borderColor: Colors.white,
-                                ),
-                              ],
-                            ),
-
-                          // ================= CURRENT LOCATION =================
-
-                MarkerLayer(
-
-  markers: [
-
-    // ================= START MARKER =================
-
-    if (route.isNotEmpty)
-
-      Marker(
-
-        point: route.first,
-
-        width: 45,
-
-        height: 45,
-
-        child: const Icon(
-
-          Icons.location_on,
-
-          color: Colors.green,
-
-          size: 40,
-        ),
-      ),
-
-    // ================= END MARKER =================
-
-    if (route.length > 1)
-
-      Marker(
-
-        point: route.last,
-
-        width: 45,
-
-        height: 45,
-
-        child: const Icon(
-
-          Icons.location_on,
-
-          color: Colors.red,
-
-          size: 40,
-        ),
-      ),
-
-    // ================= MOVING CAR / ARROW =================
-
-    Marker(
-
-      point: currentLocation!,
-
-      width: 60,
-
-      height: 60,
-
-      child: Transform.rotate(
-
-        angle: markerRotation,
-
-        child: Container(
-        
-        padding: const EdgeInsets.all(8),
-
-        decoration: BoxDecoration(
-          
-            color: Colors.white,
-
-            shape: BoxShape.circle,
-
-            boxShadow: [
-
-              BoxShadow(
-
-                color: Colors.blue.withValues(
-                  alpha: 0.2,
-                ),
-
-                blurRadius: 8,
-
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-
-          child: const Icon(
-
-            Icons.directions_car,
-
-            color: Colors.blueAccent,
-
-            size: 28,
-          ),
-        ),
-      ),
-    ),
-  ],
-),
-],
-),
-
-                      // ================= LOCATION BUTTON =================
-
-                      Positioned(
-
-                        right: 15,
-
-                        bottom: 20,
-
-                        child:
-                            FloatingActionButton(
-
-                          heroTag: "location",
-
-                          backgroundColor:
-                              Colors.white,
-
-                        onPressed: () {
-
-                        setState(() {
-
-                        followUser = !followUser;
-                    });
-
-                    if (currentLocation != null) {
-
-                     mapController.move(
-                      currentLocation!,
-                      17,
-                    );
-                   }
-                  },
-                              child: Icon(
-
-                                followUser
-                                    ? Icons.gps_fixed
-                                    : Icons.gps_not_fixed,
-
-                                color: Colors.black,
-                              ),
-                        ),
+                        userAgentPackageName:
+                        "com.taappios.app",
                       ),
 
-                      // ================= ZOOM BUTTONS =================
+                      // ================= ROUTE =================
+                      if (route.length > 1)
 
-                      Positioned(
+                        PolylineLayer(
 
-                        left: 10,
+                          polylines: [
 
-                        top: 20,
+                            Polyline(
 
-                        child: Column(
+                              points: route,
 
-                          children: [
+                              strokeWidth: 8,
 
-                            _zoomButton(
-                              Icons.add,
-                              () {
+                              color: Colors.blueAccent,
 
-                                mapController.move(
+                              borderStrokeWidth: 2,
 
-                                  mapController
-                                      .camera.center,
-
-                                  mapController
-                                          .camera.zoom +
-                                      1,
-                                );
-                              },
-                            ),
-
-                            const SizedBox(
-                              height: 8,
-                            ),
-
-                            _zoomButton(
-                              Icons.remove,
-                              () {
-
-                                mapController.move(
-
-                                  mapController
-                                      .camera.center,
-
-                                  mapController
-                                          .camera.zoom -
-                                      1,
-                                );
-                              },
+                              borderColor: Colors.white,
                             ),
                           ],
                         ),
+
+                      // ================= CURRENT LOCATION =================
+
+                      MarkerLayer(
+
+                        markers: [
+
+                          // ================= START MARKER =================
+
+                          if (route.isNotEmpty)
+
+                            Marker(
+
+                              point: route.first,
+
+                              width: 45,
+
+                              height: 45,
+
+                              child: const Icon(
+
+                                Icons.location_on,
+
+                                color: Colors.green,
+
+                                size: 40,
+                              ),
+                            ),
+
+                          // ================= END MARKER =================
+
+                          if (route.length > 1)
+
+                            Marker(
+
+                              point: route.last,
+
+                              width: 45,
+
+                              height: 45,
+
+                              child: const Icon(
+
+                                Icons.location_on,
+
+                                color: Colors.red,
+
+                                size: 40,
+                              ),
+                            ),
+
+                          // ================= MOVING CAR / ARROW =================
+
+                          Marker(
+
+                            point: currentLocation!,
+
+                            width: 60,
+
+                            height: 60,
+
+                            child: Transform.rotate(
+
+                              angle: markerRotation,
+
+                              child: Container(
+
+                                padding: const EdgeInsets.all(8),
+
+                                decoration: BoxDecoration(
+
+                                  color: Colors.white,
+
+                                  shape: BoxShape.circle,
+
+                                  boxShadow: [
+
+                                    BoxShadow(
+
+                                      color: Colors.blue.withValues(
+                                        alpha: 0.2,
+                                      ),
+
+                                      blurRadius: 8,
+
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+
+                                child: const Icon(
+
+                                  Icons.directions_car,
+
+                                  color: Colors.blueAccent,
+
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-          ),
 
-          // ================= DISTANCE =================
+                  // ================= LOCATION BUTTON =================
 
-          Padding(
+                  Positioned(
 
-            padding:
-                const EdgeInsets.all(10),
+                    right: 15,
 
-            child: Text(
+                    bottom: 20,
 
-              "Total Distance : "
-              "${(totalDistance / 1000).toStringAsFixed(2)} KM",
+                    child:
+                    FloatingActionButton(
 
-              style: const TextStyle(
+                      heroTag: "location",
 
-                fontSize: 16,
+                      backgroundColor:
+                      Colors.white,
 
-                fontWeight:
-                    FontWeight.bold,
+                      onPressed: () {
+
+                        setState(() {
+
+                          followUser = !followUser;
+                        });
+
+                        if (currentLocation != null) {
+
+                          mapController.move(
+                            currentLocation!,
+                            17,
+                          );
+                        }
+                      },
+                      child: Icon(
+
+                        followUser
+                            ? Icons.gps_fixed
+                            : Icons.gps_not_fixed,
+
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+
+                  // ================= ZOOM BUTTONS =================
+
+                  Positioned(
+
+                    left: 10,
+
+                    top: 20,
+
+                    child: Column(
+
+                      children: [
+
+                        _zoomButton(
+                          Icons.add,
+                              () {
+
+                            mapController.move(
+
+                              mapController
+                                  .camera.center,
+
+                              mapController
+                                  .camera.zoom +
+                                  1,
+                            );
+                          },
+                        ),
+
+                        const SizedBox(
+                          height: 8,
+                        ),
+
+                        _zoomButton(
+                          Icons.remove,
+                              () {
+
+                            mapController.move(
+
+                              mapController
+                                  .camera.center,
+
+                              mapController
+                                  .camera.zoom -
+                                  1,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
 
-          // ================= BUTTONS =================
+            // ================= DISTANCE =================
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                children: [
 
-          Padding(
-
-            padding:
-                const EdgeInsets.all(12),
-
-            child: Column(
-
-              children: [
-
-                Row(
-
-                  children: [
-
-                    Expanded(
-
-                      child: _mainButton(
-
-                        "Start",
-
-                        Colors.green,
-
-                        isStarted
-                            ? null
-                            : startTour,
-                      ),
+                  Text(
+                    "Total Distance : ${(totalDistance / 1000).toStringAsFixed(2)} KM",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
 
-                    const SizedBox(
-                      width: 10,
+                  const SizedBox(height: 5),
+
+                  Text(
+                    "Pending Locations : $pendingLocations",
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.orange,
                     ),
+                  ),
 
-                    Expanded(
+                  const SizedBox(height: 5),
 
-                      child: _mainButton(
-
-                        "Pause",
-
-                        Colors.orange,
-
-                        isStarted &&
-                                !isPaused
-                            ? pauseTour
-                            : null,
-                      ),
+                  Text(
+                    syncing
+                        ? "⬆ Uploading Locations..."
+                        : "✔ Sync Completed",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: syncing ? Colors.blue : Colors.green,
                     ),
-                  ],
-                ),
+                  ),
 
-                const SizedBox(
-                  height: 10,
-                ),
-
-                Row(
-
-                  children: [
-
-                    Expanded(
-
-                      child: _mainButton(
-
-                        "Resume",
-
-                        Colors.blue,
-
-                        isPaused
-                            ? resumeTour
-                            : null,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      width: 10,
-                    ),
-
-                    Expanded(
-
-                      child: _mainButton(
-
-                        "Stop",
-
-                        Colors.red,
-
-                        isStarted
-                            ? stopTour
-                            : null,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+
+
+
+            // ================= BUTTONS =================
+
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+
+                  // ================= START / PAUSE =================
+
+                  Row(
+                    children: [
+
+                      Expanded(
+                        child: _mainButton(
+                          "Start",
+                          Colors.green,
+                          isStarted ? null : startTour,
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      Expanded(
+                        child: _mainButton(
+                          "Pause",
+                          Colors.orange,
+                          isStarted && !isPaused
+                              ? pauseTour
+                              : null,
+                        ),
+                      ),
+
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // ================= RESUME / STOP =================
+
+                  Row(
+                    children: [
+
+                      Expanded(
+                        child: _mainButton(
+                          "Resume",
+                          Colors.blue,
+                          isPaused
+                              ? resumeTour
+                              : null,
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      Expanded(
+                        child: _mainButton(
+                          "Stop",
+                          Colors.red,
+                          isStarted
+                              ? stopTour
+                              : null,
+                        ),
+                      ),
+
+                    ],
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  // ================= SYNC NOW BUTTON =================
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton.icon(
+
+                      icon: const Icon(
+                        Icons.sync,
+                        color: Colors.white,
+                      ),
+
+                      label: Text(
+                        "Sync Now ($pendingLocations)",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+
+                      onPressed: syncing
+                          ? null
+                          : () async {
+
+                        if (!mounted) return;
+
+                        setState(() {
+                          syncing = true;
+                        });
+
+                        final success =
+                        await LocationSyncService.uploadLocations();
+
+                        if (!mounted) return;
+
+                        setState(() {
+                          syncing = false;
+                          pendingLocations =
+                              TrackingStorageService.pendingCount();
+                        });
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? "Locations Synced Successfully"
+                                  : "Sync Failed",
+                            ),
+                          ),
+                        );
+                      },
+
+                    ),
+                  ),
+
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
 
   // ================= MAIN BUTTON =================
@@ -1355,6 +1558,7 @@ Widget build(BuildContext context) {
           ),
         ),
       ),
+
     );
   }
 

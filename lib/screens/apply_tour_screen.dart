@@ -78,113 +78,114 @@ class _ApplyTourScreenState
 
   List<String> journeyModes = [];
 
-String? selectedProjectScheme;
-String? selectedJourneyMode;
+  String? selectedProjectScheme;
+  String? selectedJourneyMode;
 
-String? selectedVehicleType;
+  String? selectedVehicleType;
 
-List<String> vehicleTypes = [
-  "Hatchback/Sedan",
-  "SUV",
-];
+  List<String> vehicleTypes = [
+    "Hatchback/Sedan",
+    "SUV",
+  ];
 
-final vehicleRemarksController =
-    TextEditingController();
-final otherJourneyController =
-    TextEditingController();
+  final vehicleRemarksController =
+  TextEditingController();
+  final otherJourneyController =
+  TextEditingController();
 
-bool showAdvance = false;
+  bool showAdvance = false;
+  bool isSubmitting = false;
 
   List<PlatformFile> files = [];
   List<Map<String, dynamic>> journeyList = [];
 
   // ================= INIT =================
 
- @override
-void initState() {
-  super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-  SharedPreferences.getInstance().then((prefs) {
-    print("APPLY TOUR LOG ID = ${prefs.getString('log_id')}");
-  });
+    SharedPreferences.getInstance().then((prefs) {
+      print("APPLY TOUR LOG ID = ${prefs.getString('log_id')}");
+    });
 
-  loadUser();
-  fetchDropdownData();
-}
+    loadUser();
+    fetchDropdownData();
+  }
 
   // ================= LOAD USER =================
 
-Future<void> loadUser() async {
+  Future<void> loadUser() async {
 
-  try {
+    try {
 
-    final data =
-    await ApiService.getProfile();
-    print("PROFILE DATA: $data");
+      final data =
+      await ApiService.getProfile();
+      print("PROFILE DATA: $data");
 
-    if (data != null) {
+      if (data != null) {
 
-      setState(() {
+        setState(() {
 
-        empId =
-            data['EMP_ID']
-                ?.toString() ?? "";
+          empId =
+              data['EMP_ID']
+                  ?.toString() ?? "";
 
-        name =
-            data['NAME']
-                ?.toString() ?? "";
+          name =
+              data['NAME']
+                  ?.toString() ?? "";
 
-        email =
-            data['EMAIL']
-                ?.toString() ?? "";
+          email =
+              data['EMAIL']
+                  ?.toString() ?? "";
 
-        group =
-            data['GROUP_NAME']
-                ?.toString() ?? "";
+          group =
+              data['GROUP_NAME']
+                  ?.toString() ?? "";
 
-        contact =
-            data['CONTACT']
-                ?.toString() ?? "";
+          contact =
+              data['CONTACT']
+                  ?.toString() ?? "";
 
-        designation =
-            data['DESIGNATION']
-                ?.toString() ?? "";
+          designation =
+              data['DESIGNATION']
+                  ?.toString() ?? "";
 
-        riEmail =
-            data["REPORTING_INCHARGE"]
-                ?.toString() ?? "";
+          riEmail =
+              data["REPORTING_INCHARGE"]
+                  ?.toString() ?? "";
 
-        viEmail =
-            data["VI_INCHARGE_1"]
-                ?.toString() ?? "";
+          viEmail =
+              data["VI_INCHARGE_1"]
+                  ?.toString() ?? "";
 
-        piEmail = data["PROJECT_INCHARGE"]?.toString() ?? "";
+          piEmail = data["PROJECT_INCHARGE"]?.toString() ?? "";
 
-        aoEmail =
-            data["AO_INCHARGE_1"]
-                ?.toString() ?? "";
+          aoEmail =
+              data["AO_INCHARGE_1"]
+                  ?.toString() ?? "";
 
-        directorEmail =
-            data["DIRECTOR_APPROVAL"]
-                ?.toString() ?? "";
+          directorEmail =
+              data["DIRECTOR_APPROVAL"]
+                  ?.toString() ?? "";
 
-        print("RI : $riEmail");
+          print("RI : $riEmail");
 
-        print("VI : $viEmail");
+          print("VI : $viEmail");
 
-        print("AO : $aoEmail");
+          print("AO : $aoEmail");
 
-        print("DIRECTOR : $directorEmail");
-      });
+          print("DIRECTOR : $directorEmail");
+        });
+      }
+
+    } catch (e) {
+
+      print(
+        "LOAD USER ERROR: $e",
+      );
     }
-
-  } catch (e) {
-
-    print(
-      "LOAD USER ERROR: $e",
-    );
   }
-}
 ///////
   Future<void> fetchDropdownData() async {
 
@@ -299,208 +300,554 @@ Future<void> loadUser() async {
   }
 
   // ================= SUBMIT =================
-Future<void> submitData() async {
+  Future<void> submitData() async {
+    // Prevent multiple clicks
+    if (isSubmitting) return;
 
-  // ===== VALIDATION =====
+    setState(() {
+      isSubmitting = true;
+    });
 
-  if (journeyList.isEmpty) {
+    // ===== VALIDATION =====
+
+    if (journeyList.isEmpty) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please add at least one journey."),
+        ),
+      );
+
+      return;
+    }
+
+    print("=========== BEFORE SUBMIT ===========");
+    print("Journey Count : ${journeyList.length}");
+    print(journeyList);
+
+    //
+    if (purposeController.text.trim().isEmpty) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Purpose of Visit is Required"),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (sanctionController.text.isNotEmpty &&
+        double.tryParse(sanctionController.text) == null) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Invalid Sanction Amount"),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (startDate == null) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Start Date is Required"),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (endDate == null) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("End Date is Required"),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (endDate!.isBefore(startDate!)) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "End Date must be after Start Date",
+          ),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (fromController.text.trim().isEmpty) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Enter From Location",
+          ),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (toController.text.trim().isEmpty) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Enter To Location",
+          ),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (fromController.text.trim().toLowerCase() ==
+        toController.text.trim().toLowerCase()) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "From and To cannot be same",
+          ),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (selectedJourneyMode == null) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Select Journey Mode",
+          ),
+        ),
+      );
+
+      return;
+
+    }
+//
+
+    if (tourType.isEmpty) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Select Tour Type"),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (selectedProjectScheme == null) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Select Project Scheme"),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (placeController.text.trim().isEmpty) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Place to be Visited is Required"),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (showAdvance) {
+
+      if (advanceController.text.trim().isEmpty) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Enter Advance Amount",
+            ),
+          ),
+        );
+
+        return;
+
+      }
+
+      if (double.tryParse(
+          advanceController.text) ==
+          null) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Invalid Advance Amount",
+            ),
+          ),
+        );
+
+        return;
+
+      }
+
+    }
+//
+    if (journeyList.isEmpty) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Please add at least one journey.",
+          ),
+        ),
+      );
+
+      return;
+
+    }
+//
+    if (selectedJourneyMode == "Taxi") {
+
+      if (selectedVehicleType == null) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Select Vehicle Type",
+            ),
+          ),
+        );
+
+        return;
+
+      }
+
+      if (vehicleRemarksController.text
+          .trim()
+          .isEmpty) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Vehicle Remarks Required",
+            ),
+          ),
+        );
+
+        return;
+
+      }
+
+    }
+//
+    if (selectedJourneyMode == "Other") {
+
+      if (otherJourneyController.text
+          .trim()
+          .isEmpty) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Specify Other Journey Mode",
+            ),
+          ),
+        );
+
+        return;
+
+      }
+
+    }
+//
+
+    if (showAdvance) {
+
+      if (advanceController.text.trim().isEmpty) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Enter Advance Amount"),
+          ),
+        );
+
+        return;
+      }
+
+      // Advance submission date validation
+      if (endDate == null) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Select Advance Submission Date"),
+          ),
+        );
+
+        return;
+      }
+
+    }
+//
+
+    Map<String, dynamic> body = {
+
+      "PUT_SELECTED_PROEJCT": selectedProjectScheme ?? "",
+
+      "PUT_EMP_ID": empId,
+
+      "PUT_NAME": name,
+
+      "PUT_CONTACT": contact,
+
+      "PUT_EMAIL": email,
+
+      "PUT_DESIGNATION": designation,
+
+      "PUT_DIVISION": group,
+
+      "PUT_USER_TYPE": "USER",
+
+      "PUT_RI_EMAIL": riEmail,
+
+      "PUT_VI_EMAIL": viEmail,
+
+      "PUT_PI_EMAIL": piEmail,
+
+      "PUT_AO_EMAIL": aoEmail,
+
+      "PUT_DIRECTOR_EMAIL": directorEmail,
+
+      "PUT_VISIT_PURPOSE": purposeController.text,
+
+      "PUT_TOUR_TYPE": tourType,
+
+      "PUT_OTHER_TOUR_TYPE": "",
+
+      "PUT_SANCTION": sanctionController.text,
+
+      "PUT_OTHER_PROJECT": "",
+
+      "PUT_ADVANCE":
+      showAdvance
+          ? advanceController.text
+          : "0",
+
+      "PUT_ADVANCE_DATE":
+      endDate == null
+          ? ""
+          : endDate.toString().split(" ")[0],
+
+      "PUT_FROM_DATE":
+      startDate == null
+          ? ""
+          : startDate.toString().split(" ")[0],
+
+      "PUT_TO_DATE":
+      endDate == null
+          ? ""
+          : endDate.toString().split(" ")[0],
+
+      "PUT_DAYS": getDays(),
+
+      "PUT_VISIT_PLACE": placeController.text,
+
+      // IMPORTANT
+      "journey_details": journeyList,
+
+    };
+
+    print(body);
+
+    print("========== BODY ==========");
+
+    body.forEach((key,value){
+
+      print("$key : $value");
+
+    });
+
+    print("==========================");
+
+    final response = await ApiService.submitTour(body);
+
+    print("SUBMIT RESPONSE : $response");
+
+    if (!mounted) return;
+
+    if (response != null &&
+        response["success"] == true) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response["message"]),
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const MyTourListScreen(),
+        ),
+      );
+
+    } else {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            response?["message"] ??
+                "Failed to submit tour",
+          ),
+        ),
+      );
+
+    }
+
+  }
+  ///add journey
+  ///
+  void addJourney() {
+
+    if (startDate == null) {
+      if (this.startDate == null || endDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Select Tour Dates First",
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (startDate!.isBefore(this.startDate!) ||
+          startDate!.isAfter(endDate!)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Journey Date must be between Tour Dates",
+            ),
+          ),
+        );
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Select journey date")),
+      );
+      return;
+    }
+
+    if (fromController.text.trim().isEmpty ||
+        toController.text.trim().isEmpty ||
+        selectedJourneyMode == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Fill all journey details")),
+      );
+      return;
+    }
+    //
+    bool alreadyExists =
+    journeyList.any((e) {
+
+      return e["date"] ==
+          startDate!
+              .toString()
+              .split(" ")[0] &&
+          e["from"] ==
+              fromController.text.trim() &&
+          e["to"] ==
+              toController.text.trim();
+
+    });
+
+    if (alreadyExists) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Journey Already Added",
+          ),
+        ),
+      );
+
+      return;
+
+    }
+//
+
+    Map<String, dynamic> journey = {
+
+      "date": startDate!.toString().split(" ")[0],
+
+      "from": fromController.text.trim(),
+
+      "to": toController.text.trim(),
+
+      "journey_mode": selectedJourneyMode!,
+
+      "taxi_type": selectedVehicleType ?? "",
+
+      "taxi_remarks": vehicleRemarksController.text.trim(),
+
+      "other_mode": otherJourneyController.text.trim(),
+
+      "remarks": remarksController.text.trim(),
+
+    };
+
+    setState(() {
+
+      journeyList.add(journey);
+
+      print("============= JOURNEY ADDED =============");
+      print(journey);
+      print("TOTAL JOURNEYS : ${journeyList.length}");
+      print(journeyList);
+      print("========================================");
+
+      fromController.clear();
+      toController.clear();
+      remarksController.clear();
+      vehicleRemarksController.clear();
+      otherJourneyController.clear();
+
+      selectedJourneyMode = null;
+      selectedVehicleType = null;
+      startDate = null;
+
+    });
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Please add at least one journey."),
+        content: Text("Journey Added Successfully"),
       ),
     );
-
-    return;
   }
-
-  print("=========== BEFORE SUBMIT ===========");
-  print("Journey Count : ${journeyList.length}");
-  print(journeyList);
-
-  Map<String, dynamic> body = {
-
-    "PUT_SELECTED_PROEJCT": selectedProjectScheme ?? "",
-
-    "PUT_EMP_ID": empId,
-
-    "PUT_NAME": name,
-
-    "PUT_CONTACT": contact,
-
-    "PUT_EMAIL": email,
-
-    "PUT_DESIGNATION": designation,
-
-    "PUT_DIVISION": group,
-
-    "PUT_USER_TYPE": "USER",
-
-    "PUT_RI_EMAIL": riEmail,
-
-    "PUT_VI_EMAIL": viEmail,
-
-    "PUT_PI_EMAIL": piEmail,
-
-    "PUT_AO_EMAIL": aoEmail,
-
-    "PUT_DIRECTOR_EMAIL": directorEmail,
-
-    "PUT_VISIT_PURPOSE": purposeController.text,
-
-    "PUT_TOUR_TYPE": tourType,
-
-    "PUT_OTHER_TOUR_TYPE": "",
-
-    "PUT_SANCTION": sanctionController.text,
-
-    "PUT_OTHER_PROJECT": "",
-
-    "PUT_ADVANCE":
-        showAdvance
-            ? advanceController.text
-            : "0",
-
-    "PUT_ADVANCE_DATE":
-        endDate == null
-            ? ""
-            : endDate.toString().split(" ")[0],
-
-    "PUT_FROM_DATE":
-        startDate == null
-            ? ""
-            : startDate.toString().split(" ")[0],
-
-    "PUT_TO_DATE":
-        endDate == null
-            ? ""
-            : endDate.toString().split(" ")[0],
-
-    "PUT_DAYS": getDays(),
-
-    "PUT_VISIT_PLACE": placeController.text,
-
-    // IMPORTANT
-    "journey_details": journeyList,
-
-  };
-
-  print(body);
-
-  print("========== BODY ==========");
-
-  body.forEach((key,value){
-
-    print("$key : $value");
-
-  });
-
-  print("==========================");
-
-  final response = await ApiService.submitTour(body);
-
-  print("SUBMIT RESPONSE : $response");
-
-  if (!mounted) return;
-
-  if (response != null &&
-      response["success"] == true) {
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(response["message"]),
-      ),
-    );
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const MyTourListScreen(),
-      ),
-    );
-
-  } else {
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          response?["message"] ??
-              "Failed to submit tour",
-        ),
-      ),
-    );
-
-  }
-
-}
-  ///add journey 
-  ///
-void addJourney() {
-
-  if (startDate == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Select journey date")),
-    );
-    return;
-  }
-
-  if (fromController.text.trim().isEmpty ||
-      toController.text.trim().isEmpty ||
-      selectedJourneyMode == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Fill all journey details")),
-    );
-    return;
-  }
-
-  Map<String, dynamic> journey = {
-
-    "date": startDate!.toString().split(" ")[0],
-
-    "from": fromController.text.trim(),
-
-    "to": toController.text.trim(),
-
-    "journey_mode": selectedJourneyMode!,
-
-    "taxi_type": selectedVehicleType ?? "",
-
-    "taxi_remarks": vehicleRemarksController.text.trim(),
-
-    "other_mode": otherJourneyController.text.trim(),
-
-    "remarks": remarksController.text.trim(),
-
-  };
-
-  setState(() {
-
-    journeyList.add(journey);
-
-    print("============= JOURNEY ADDED =============");
-    print(journey);
-    print("TOTAL JOURNEYS : ${journeyList.length}");
-    print(journeyList);
-    print("========================================");
-
-    fromController.clear();
-    toController.clear();
-    remarksController.clear();
-    vehicleRemarksController.clear();
-    otherJourneyController.clear();
-
-    selectedJourneyMode = null;
-    selectedVehicleType = null;
-    startDate = null;
-
-  });
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text("Journey Added Successfully"),
-    ),
-  );
-}
   // ================= UI =================
 
   @override
@@ -508,77 +855,77 @@ void addJourney() {
 
     return Scaffold(
       drawer: AppDrawer(
-    name: name,
-    email: email,
-  ),
+        name: name,
+        email: email,
+      ),
 
       backgroundColor:
       const Color(0xFFF2F2F2),
 
-     appBar: AppBar(
-  backgroundColor: const Color(0xFF162B63),
-  elevation: 0,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF162B63),
+        elevation: 0,
 
-  leading: Builder(
-    builder: (context) => IconButton(
-      icon: const Icon(
-        Icons.menu,
-        color: Colors.white,
-      ),
-      onPressed: () {
-        Scaffold.of(context).openDrawer();
-      },
-    ),
-  ),
-
-  title: const Text(
-    "Apply Tour",
-    style: TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.bold,
-      fontSize: 22,
-    ),
-  ),
-
-  actions: [
-    PopupMenuButton<String>(
-      icon: const Icon(
-        Icons.more_vert,
-        color: Colors.white,
-      ),
-
-      onSelected: (value) async {
-        if (value == "logout") {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.clear();
-
-          if (!mounted) return;
-
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const LoginScreen(),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(
+              Icons.menu,
+              color: Colors.white,
             ),
-            (route) => false,
-          );
-        }
-      },
-
-      itemBuilder: (context) => const [
-        PopupMenuItem(
-          value: "logout",
-          child: Row(
-            children: [
-              Icon(Icons.logout),
-              SizedBox(width: 10),
-              Text("Logout"),
-            ],
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
           ),
         ),
-      ],
-    ),
-  ],
-),
+
+        title: const Text(
+          "Apply Tour",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
+
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(
+              Icons.more_vert,
+              color: Colors.white,
+            ),
+
+            onSelected: (value) async {
+              if (value == "logout") {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear();
+
+                if (!mounted) return;
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LoginScreen(),
+                  ),
+                      (route) => false,
+                );
+              }
+            },
+
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: "logout",
+                child: Row(
+                  children: [
+                    Icon(Icons.logout),
+                    SizedBox(width: 10),
+                    Text("Logout"),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
 
       body: SingleChildScrollView(
 
@@ -587,694 +934,694 @@ void addJourney() {
 
         child: Column(
 
-          children: [
+            children: [
 
-            // ================= EMPLOYEE DETAILS =================
+              // ================= EMPLOYEE DETAILS =================
 
-            sectionCard(
+              sectionCard(
 
-              title: "Employee Details",
+                title: "Employee Details",
 
-              children: [
+                children: [
 
-                buildField(
-                  "Employee Id",
-                  empId,
-                ),
-
-                buildField(
-                  "Email",
-                  email,
-                ),
-
-                buildField(
-                  "Group",
-                  group,
-                ),
-
-                buildField(
-                  "Name",
-                  name,
-                ),
-
-                buildField(
-                  "Contact",
-                  contact,
-                ),
-
-                buildField(
-                  "Designation",
-                  designation,
-                ),
-              ],
-            ),
-
-            // ================= TOUR DETAILS =================
-
-            sectionCard(
-
-              title: "Tour Details",
-
-              children: [
-
-                // ================= PURPOSE =================
-
-                buildInput(
-                  "Purpose of Visit",
-                  purposeController,
-                ),
-
-                // ================= SANCTION =================
-
-                buildInput(
-                  "Sanction",
-                  sanctionController,
-                ),
-
-                // ================= DATE FROM =================
-
-                dateField(
-                  "Date From",
-                  startDate,
-                      () => pickDate(true),
-                ),
-
-                if (startDate == null)
-
-                  const Padding(
-
-                    padding: EdgeInsets.only(
-                      left: 4,
-                      top: 2,
-                      bottom: 12,
-                    ),
-
-                    child: Text(
-
-                      "Start date is required",
-
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                      ),
-                    ),
+                  buildField(
+                    "Employee Id",
+                    empId,
                   ),
 
-                // ================= DATE TO =================
-
-                dateField(
-                  "Date To",
-                  endDate,
-                      () => pickDate(false),
-                ),
-
-                if (endDate == null)
-
-                  const Padding(
-
-                    padding: EdgeInsets.only(
-                      left: 4,
-                      top: 2,
-                      bottom: 12,
-                    ),
-
-                    child: Text(
-
-                      "End date is required",
-
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                      ),
-                    ),
+                  buildField(
+                    "Email",
+                    email,
                   ),
 
-                // ================= AUTO DAYS =================
-
-                buildField(
-                  "Days",
-                  getDays(),
-                ),
-
-                // ================= TOUR TYPE =================
-
-                dropdownField(
-
-                  "Tour Type",
-
-                  [
-                    "Field",
-                    "Meeting",
-                    "Office",
-                    "Other",
-                  ],
-
-                      (val) {
-
-                    setState(() {
-
-                      tourType = val;
-                    });
-                  },
-                ),
-
-                if (tourType.isEmpty)
-
-                  const Padding(
-
-                    padding: EdgeInsets.only(
-                      left: 4,
-                      top: 2,
-                      bottom: 12,
-                    ),
-
-                    child: Text(
-
-                      "tour type is Required",
-
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                      ),
-                    ),
+                  buildField(
+                    "Group",
+                    group,
                   ),
 
-                
-
-// ================= PROJECT SCHEME =================
-
-const Text(
-  "Project Scheme",
-  style: TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-  ),
-),
-
-const SizedBox(height: 8),
-
-DropdownButtonFormField<String>(
-  isExpanded: true,
-  value: selectedProjectScheme,
-  decoration: InputDecoration(
-    hintText: "Select Project Scheme",
-    contentPadding: const EdgeInsets.symmetric(
-      horizontal: 16,
-      vertical: 16,
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(
-        color: Colors.grey.shade300,
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(
-        color: Colors.grey.shade500,
-      ),
-    ),
-  ),
-  items: projectSchemes.map((item) {
-
-    return DropdownMenuItem<String>(
-
-      value: item["Id"].toString(),
-
-      child: Text(
-
-        item["Project_Name"],
-
-        overflow: TextOverflow.ellipsis,
-
-      ),
-
-    );
-
-  }).toList(),
-  onChanged: (value) {
-    setState(() {
-      selectedProjectScheme = value;
-    });
-  },
-),
-
-if (selectedProjectScheme == null)
-  const Padding(
-    padding: EdgeInsets.only(left: 4, top: 4, bottom: 16),
-    child: Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        "Project Scheme is Required",
-        style: TextStyle(
-          color: Colors.red,
-          fontSize: 13,
-        ),
-      ),
-    ),
-  ),
-
-const SizedBox(height: 18),
-
-                // ================= PLACE =================
-
-                buildInput(
-                  "Place to be Visited",
-                  placeController,
-                ),
-              ],
-            ),
-
-
-
-            // ================= JOURNEY DETAILS =================
-
-            sectionCard(
-
-              title: "Journey Details",
-
-              children: [
-
-                dateField(
-                  "Date",
-                  startDate,
-                      () => pickDate(true),
-                ),
-                if (startDate == null)
-
-                  const Padding(
-
-                    padding: EdgeInsets.only(
-                      left: 4,
-                      top: 2,
-                      bottom: 12,
-                    ),
-
-                    child: Text(
-
-                      "Journey date is required",
-
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                      ),
-                    ),
+                  buildField(
+                    "Name",
+                    name,
                   ),
 
-
-                buildInput(
-                  "From",
-                  fromController,
-                ),
-                if (startDate == null)
-
-                  const Padding(
-
-                    padding: EdgeInsets.only(
-                      left: 4,
-                      top: 2,
-                      bottom: 12,
-                    ),
-
-                    child: Text(
-
-                      "Start date is required",
-
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                      ),
-                    ),
+                  buildField(
+                    "Contact",
+                    contact,
                   ),
 
-
-                buildInput(
-                  "To",
-                  toController,
-                ),
-
-// ================= MODE OF JOURNEY =================
-
-const Text(
-  "Mode of Journey",
-  style: TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-  ),
-),
-
-const SizedBox(height: 8),
-
-DropdownButtonFormField<String>(
-  isExpanded: true,
-  value: selectedJourneyMode,
-  decoration: InputDecoration(
-    hintText: "Select Mode of Journey",
-    contentPadding: const EdgeInsets.symmetric(
-      horizontal: 16,
-      vertical: 16,
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(
-        color: Colors.grey.shade300,
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(
-        color: Colors.grey.shade500,
-      ),
-    ),
-  ),
-  items: journeyModes.map((item) {
-    return DropdownMenuItem<String>(
-      value: item,
-      child: Text(item)
-    );
-  }).toList(),
-////////
-onChanged: (value) {
-
-  setState(() {
-
-    selectedJourneyMode = value;
-
-    if (value != "Taxi") {
-
-      selectedVehicleType = null;
-      vehicleRemarksController.clear();
-
-    }
-
-    if (value != "Other") {
-
-      otherJourneyController.clear();
-
-    }
-
-  });
-
-},
-),
-if (selectedJourneyMode == null)
-  const Padding(
-    padding: EdgeInsets.only(left: 4, top: 4, bottom: 16),
-    child: Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        "Mode of Journey is Required",
-        style: TextStyle(
-          color: Colors.red,
-          fontSize: 13,
-        ),
-      ),
-    ),
-  ),
-if (selectedJourneyMode == "Taxi") ...[
-
-  const SizedBox(height: 15),
-
-  // Vehicle Type
-  const Text(
-    "Vehicle Type",
-    style: TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-    ),
-  ),
-
-  const SizedBox(height: 8),
-
-  DropdownButtonFormField<String>(
-    value: selectedVehicleType,
-    decoration: InputDecoration(
-      hintText: "Select Vehicle Type",
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 16,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-    ),
-    items: vehicleTypes.map((item) {
-      return DropdownMenuItem(
-        value: item,
-        child: Text(item),
-      );
-    }).toList(),
-    onChanged: (value) {
-      setState(() {
-        selectedVehicleType = value;
-      });
-    },
-  ),
-
-  const SizedBox(height: 15),
-
-  // Vehicle Remarks
-  buildInput(
-    "Vehicle Remarks",
-    vehicleRemarksController,
-  ),
-],
-if (selectedJourneyMode == "Other") ...[
-
-  const SizedBox(height: 15),
-
-  buildInput(
-    "Please Specify Other Journey Mode",
-    otherJourneyController,
-  ),
-
-],
-
-buildInput(
-  "Remarks",
-  remarksController,
-),
-
-SizedBox(
-  width: double.infinity,
-  child: ElevatedButton(
-    onPressed: addJourney,
-    child: const Text("Add Journey"),
-  ),
-),
-
-const SizedBox(height: 20),
-
-ListView.builder(
-  shrinkWrap: true,
-  physics: const NeverScrollableScrollPhysics(),
-  itemCount: journeyList.length,
-  itemBuilder: (context, index) {
-    final item = journeyList[index];
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        title: Text("${item['from']} → ${item['to']}"),
-        subtitle: Text(
-          "Date : ${item['date']}\n"
-          "Mode : ${item['journey_mode']}\n"
-          "Remarks : ${item['remarks']}",
-        ),
-        trailing: IconButton(
-          icon: const Icon(
-            Icons.delete,
-            color: Colors.red,
-          ),
-          onPressed: () {
-            setState(() {
-              journeyList.removeAt(index);
-            });
-          },
-        ),
-      ),
-    );
-  },
-),  
-
-            // ================= ADVANCE =================
-
-            sectionCard(
-
-              title: "Advance",
-
-              children: [
-
-                Row(
-
-                  mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
-
-                  children: [
-
-                    const Text(
-
-                      "Enable Advance",
-
-                      style: TextStyle(
-                        fontSize: 16,
-                      ),
-                    ),
-
-                    Switch(
-
-                      value: showAdvance,
-
-                      onChanged: (val) {
-
-                        setState(() {
-
-                          showAdvance = val;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-
-                if (showAdvance) ...[
-
-                  const SizedBox(
-                    height: 15,
+                  buildField(
+                    "Designation",
+                    designation,
                   ),
+                ],
+              ),
+
+              // ================= TOUR DETAILS =================
+
+              sectionCard(
+
+                title: "Tour Details",
+
+                children: [
+
+                  // ================= PURPOSE =================
 
                   buildInput(
-                    "Grant for Advance",
-                    advanceController,
+                    "Purpose of Visit",
+                    purposeController,
                   ),
 
+                  // ================= SANCTION =================
+
+                  buildInput(
+                    "Sanction",
+                    sanctionController,
+                  ),
+
+                  // ================= DATE FROM =================
+
                   dateField(
-                    "Amount should be submitted by",
+                    "Date From",
+                    startDate,
+                        () => pickDate(true),
+                  ),
+
+                  if (startDate == null)
+
+                    const Padding(
+
+                      padding: EdgeInsets.only(
+                        left: 4,
+                        top: 2,
+                        bottom: 12,
+                      ),
+
+                      child: Text(
+
+                        "Start date is required",
+
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+
+                  // ================= DATE TO =================
+
+                  dateField(
+                    "Date To",
                     endDate,
                         () => pickDate(false),
                   ),
-                ],
-              ],
-            ),
 
-            // ================= FILE =================
+                  if (endDate == null)
 
-            sectionCard(
+                    const Padding(
 
-              title: "Upload File",
-
-              children: [
-
-                SizedBox(
-
-                  width: double.infinity,
-
-                  child: ElevatedButton(
-
-                    onPressed: pickFiles,
-
-                    style:
-                    ElevatedButton.styleFrom(
-
-                      backgroundColor:
-                      Colors.blue,
-
-                      minimumSize:
-                      const Size(
-                        double.infinity,
-                        50,
+                      padding: EdgeInsets.only(
+                        left: 4,
+                        top: 2,
+                        bottom: 12,
                       ),
 
-                      shape:
-                      RoundedRectangleBorder(
+                      child: Text(
 
-                        borderRadius:
-                        BorderRadius.circular(10),
+                        "End date is required",
+
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
 
-                    child: const Text(
+                  // ================= AUTO DAYS =================
 
-                      "CHOOSE FILE",
+                  buildField(
+                    "Days",
+                    getDays(),
+                  ),
 
-                      style: TextStyle(
-                        color: Colors.white,
+                  // ================= TOUR TYPE =================
+
+                  dropdownField(
+
+                    "Tour Type",
+
+                    [
+                      "Field",
+                      "Meeting",
+                      "Office",
+                      "Other",
+                    ],
+
+                        (val) {
+
+                      setState(() {
+
+                        tourType = val;
+                      });
+                    },
+                  ),
+
+                  if (tourType.isEmpty)
+
+                    const Padding(
+
+                      padding: EdgeInsets.only(
+                        left: 4,
+                        top: 2,
+                        bottom: 12,
                       ),
+
+                      child: Text(
+
+                        "tour type is Required",
+
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+
+
+
+// ================= PROJECT SCHEME =================
+
+                  const Text(
+                    "Project Scheme",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
 
-                const SizedBox(
-                  height: 15,
-                ),
+                  const SizedBox(height: 8),
 
-                if (files.isNotEmpty)
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: selectedProjectScheme,
+                    decoration: InputDecoration(
+                      hintText: "Select Project Scheme",
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ),
+                    items: projectSchemes.map((item) {
 
-                  Column(
+                      return DropdownMenuItem<String>(
 
-                    children: files.map((f) {
+                        value: item["Id"].toString(),
 
-                      return ListTile(
+                        child: Text(
 
-                        leading: const Icon(
-                          Icons.insert_drive_file,
+                          item["Project_Name"],
+
+                          overflow: TextOverflow.ellipsis,
+
                         ),
 
-                        title: Text(f.name),
                       );
+
                     }).toList(),
-                  ),
-              ],
-            ),
-
-            const SizedBox(
-              height: 20,
-            ),
-
-            // ================= SUBMIT =================
-
-            SizedBox(
-
-              width: double.infinity,
-
-              child: ElevatedButton(
-
-                onPressed: submitData,
-
-                style:
-                ElevatedButton.styleFrom(
-
-                  backgroundColor:
-                  const Color(0xFF162B63),
-
-                  padding:
-                  const EdgeInsets.symmetric(
-                    vertical: 16,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedProjectScheme = value;
+                      });
+                    },
                   ),
 
-                  shape:
-                  RoundedRectangleBorder(
+                  if (selectedProjectScheme == null)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4, top: 4, bottom: 16),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Project Scheme is Required",
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
 
-                    borderRadius:
-                    BorderRadius.circular(10),
+                  const SizedBox(height: 18),
+
+                  // ================= PLACE =================
+
+                  buildInput(
+                    "Place to be Visited",
+                    placeController,
                   ),
-                ),
-
-                child: const Text(
-
-                  "Submit",
-
-                  style: TextStyle(
-
-                    color: Colors.white,
-
-                    fontSize: 18,
-                  ),
-                ),
+                ],
               ),
-            ),
-          ]
-            ),
-        ]
+
+
+
+              // ================= JOURNEY DETAILS =================
+
+              sectionCard(
+
+                  title: "Journey Details",
+
+                  children: [
+
+                    dateField(
+                      "Date",
+                      startDate,
+                          () => pickDate(true),
+                    ),
+                    if (startDate == null)
+
+                      const Padding(
+
+                        padding: EdgeInsets.only(
+                          left: 4,
+                          top: 2,
+                          bottom: 12,
+                        ),
+
+                        child: Text(
+
+                          "Journey date is required",
+
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+
+
+                    buildInput(
+                      "From",
+                      fromController,
+                    ),
+                    if (startDate == null)
+
+                      const Padding(
+
+                        padding: EdgeInsets.only(
+                          left: 4,
+                          top: 2,
+                          bottom: 12,
+                        ),
+
+                        child: Text(
+
+                          "Start date is required",
+
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+
+
+                    buildInput(
+                      "To",
+                      toController,
+                    ),
+
+// ================= MODE OF JOURNEY =================
+
+                    const Text(
+                      "Mode of Journey",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: selectedJourneyMode,
+                      decoration: InputDecoration(
+                        hintText: "Select Mode of Journey",
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade300,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ),
+                      items: journeyModes.map((item) {
+                        return DropdownMenuItem<String>(
+                            value: item,
+                            child: Text(item)
+                        );
+                      }).toList(),
+////////
+                      onChanged: (value) {
+
+                        setState(() {
+
+                          selectedJourneyMode = value;
+
+                          if (value != "Taxi") {
+
+                            selectedVehicleType = null;
+                            vehicleRemarksController.clear();
+
+                          }
+
+                          if (value != "Other") {
+
+                            otherJourneyController.clear();
+
+                          }
+
+                        });
+
+                      },
+                    ),
+                    if (selectedJourneyMode == null)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4, top: 4, bottom: 16),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Mode of Journey is Required",
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (selectedJourneyMode == "Taxi") ...[
+
+                      const SizedBox(height: 15),
+
+                      // Vehicle Type
+                      const Text(
+                        "Vehicle Type",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      DropdownButtonFormField<String>(
+                        value: selectedVehicleType,
+                        decoration: InputDecoration(
+                          hintText: "Select Vehicle Type",
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        items: vehicleTypes.map((item) {
+                          return DropdownMenuItem(
+                            value: item,
+                            child: Text(item),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedVehicleType = value;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      // Vehicle Remarks
+                      buildInput(
+                        "Vehicle Remarks",
+                        vehicleRemarksController,
+                      ),
+                    ],
+                    if (selectedJourneyMode == "Other") ...[
+
+                      const SizedBox(height: 15),
+
+                      buildInput(
+                        "Please Specify Other Journey Mode",
+                        otherJourneyController,
+                      ),
+
+                    ],
+
+                    buildInput(
+                      "Remarks",
+                      remarksController,
+                    ),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: addJourney,
+                        child: const Text("Add Journey"),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: journeyList.length,
+                      itemBuilder: (context, index) {
+                        final item = journeyList[index];
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          child: ListTile(
+                            title: Text("${item['from']} → ${item['to']}"),
+                            subtitle: Text(
+                              "Date : ${item['date']}\n"
+                                  "Mode : ${item['journey_mode']}\n"
+                                  "Remarks : ${item['remarks']}",
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(
+                                Icons.delete,
+                                color: Colors.red,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  journeyList.removeAt(index);
+                                });
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                    // ================= ADVANCE =================
+
+                    sectionCard(
+
+                      title: "Advance",
+
+                      children: [
+
+                        Row(
+
+                          mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween,
+
+                          children: [
+
+                            const Text(
+
+                              "Enable Advance",
+
+                              style: TextStyle(
+                                fontSize: 16,
+                              ),
+                            ),
+
+                            Switch(
+
+                              value: showAdvance,
+
+                              onChanged: (val) {
+
+                                setState(() {
+
+                                  showAdvance = val;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+
+                        if (showAdvance) ...[
+
+                          const SizedBox(
+                            height: 15,
+                          ),
+
+                          buildInput(
+                            "Grant for Advance",
+                            advanceController,
+                          ),
+
+                          dateField(
+                            "Amount should be submitted by",
+                            endDate,
+                                () => pickDate(false),
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    // ================= FILE =================
+
+                    sectionCard(
+
+                      title: "Upload File",
+
+                      children: [
+
+                        SizedBox(
+
+                          width: double.infinity,
+
+                          child: ElevatedButton(
+
+                            onPressed: pickFiles,
+
+                            style:
+                            ElevatedButton.styleFrom(
+
+                              backgroundColor:
+                              Colors.blue,
+
+                              minimumSize:
+                              const Size(
+                                double.infinity,
+                                50,
+                              ),
+
+                              shape:
+                              RoundedRectangleBorder(
+
+                                borderRadius:
+                                BorderRadius.circular(10),
+                              ),
+                            ),
+
+                            child: const Text(
+
+                              "CHOOSE FILE",
+
+                              style: TextStyle(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(
+                          height: 15,
+                        ),
+
+                        if (files.isNotEmpty)
+
+                          Column(
+
+                            children: files.map((f) {
+
+                              return ListTile(
+
+                                leading: const Icon(
+                                  Icons.insert_drive_file,
+                                ),
+
+                                title: Text(f.name),
+                              );
+                            }).toList(),
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(
+                      height: 20,
+                    ),
+
+                    // ================= SUBMIT =================
+
+                    SizedBox(
+
+                      width: double.infinity,
+
+                      child: ElevatedButton(
+
+                        onPressed: submitData,
+
+                        style:
+                        ElevatedButton.styleFrom(
+
+                          backgroundColor:
+                          const Color(0xFF162B63),
+
+                          padding:
+                          const EdgeInsets.symmetric(
+                            vertical: 16,
+                          ),
+
+                          shape:
+                          RoundedRectangleBorder(
+
+                            borderRadius:
+                            BorderRadius.circular(10),
+                          ),
+                        ),
+
+                        child: const Text(
+
+                          "Submit",
+
+                          style: TextStyle(
+
+                            color: Colors.white,
+
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ]
+              ),
+            ]
         ),
       ),
     );
@@ -1550,77 +1897,77 @@ ListView.builder(
             height: 8,
           ),
 
-  DropdownButtonFormField<String>(
+          DropdownButtonFormField<String>(
 
-  isExpanded: true,
+            isExpanded: true,
 
-  value: label == "Project Scheme"
-      ? selectedProjectScheme
-      : label == "Mode of Journey"
-      ? selectedJourneyMode
-      : null,
+            value: label == "Project Scheme"
+                ? selectedProjectScheme
+                : label == "Mode of Journey"
+                ? selectedJourneyMode
+                : null,
 
-  decoration: InputDecoration(
+            decoration: InputDecoration(
 
-    contentPadding:
-    const EdgeInsets.symmetric(
+              contentPadding:
+              const EdgeInsets.symmetric(
 
-      horizontal: 16,
+                horizontal: 16,
 
-      vertical: 5,
-    ),
+                vertical: 5,
+              ),
 
-    enabledBorder:
-    OutlineInputBorder(
+              enabledBorder:
+              OutlineInputBorder(
 
-      borderRadius:
-      BorderRadius.circular(10),
+                borderRadius:
+                BorderRadius.circular(10),
 
-      borderSide: BorderSide(
-        color:
-        Colors.grey.shade300,
-      ),
-    ),
+                borderSide: BorderSide(
+                  color:
+                  Colors.grey.shade300,
+                ),
+              ),
 
-    focusedBorder:
-    OutlineInputBorder(
+              focusedBorder:
+              OutlineInputBorder(
 
-      borderRadius:
-      BorderRadius.circular(10),
+                borderRadius:
+                BorderRadius.circular(10),
 
-      borderSide: BorderSide(
-        color:
-        Colors.grey.shade400,
-      ),
-    ),
-  ),
+                borderSide: BorderSide(
+                  color:
+                  Colors.grey.shade400,
+                ),
+              ),
+            ),
 
-  hint: Text(
-    "Select $label",
-  ),
+            hint: Text(
+              "Select $label",
+            ),
 
-  items: items.map((e) {
+            items: items.map((e) {
 
-    return DropdownMenuItem<String>(
+              return DropdownMenuItem<String>(
 
-      value: e,
+                value: e,
 
-      child: Text(
+                child: Text(
 
-        e,
+                  e,
 
-        overflow:
-        TextOverflow.ellipsis,
-      ),
-    );
+                  overflow:
+                  TextOverflow.ellipsis,
+                ),
+              );
 
-  }).toList(),
+            }).toList(),
 
-  onChanged: (val) {
+            onChanged: (val) {
 
-    if (val != null) {
-      onChanged(val);
-            }
+              if (val != null) {
+                onChanged(val);
+              }
             },
           ),
         ],

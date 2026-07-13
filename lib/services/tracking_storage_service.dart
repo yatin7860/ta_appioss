@@ -197,6 +197,16 @@ class TrackingStorageService {
   }
 
   /// ===================================================
+  /// TOTAL PENDING LOCATIONS
+  /// ===================================================
+
+  static int pendingCount() {
+
+    return getPendingPoints().length;
+
+  }
+
+  /// ===================================================
   /// CLEAR EVERYTHING
   /// ===================================================
 

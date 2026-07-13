@@ -5,6 +5,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'screens/check_login.dart';
+import 'taskhandler/location_task_handler.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,6 +59,12 @@ Future<void> main() async {
   );
 
   runApp(const MyApp());
+}
+@pragma('vm:entry-point')
+void startCallback() {
+  FlutterForegroundTask.setTaskHandler(
+    LocationTaskHandler(),
+  );
 }
 
 class MyApp extends StatelessWidget {
