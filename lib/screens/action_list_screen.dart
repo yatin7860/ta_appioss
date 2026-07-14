@@ -171,6 +171,12 @@ class _ActionListScreenState
                   itemBuilder: (context, index) {
 
   final tour = filteredTours[index];
+  debugPrint("RI : ${tour["RI_STATUS"]}");
+  debugPrint("PI : ${tour["PI_STATUS"]}");
+  debugPrint("VI : ${tour["VI_STATUS"]}");
+  debugPrint("AO : ${tour["AO_STATUS"]}");
+  debugPrint("DIR : ${tour["DIRECTOR_STATUS"]}");
+  debugPrint("ROLES : $userRoles");
 
   return TourCard(
 
@@ -190,43 +196,39 @@ class _ActionListScreenState
 
       const SizedBox(height: 15),
 
-      if (ApiService.canCurrentRoleApprove(
-        tour,
-        userRoles,
-      ))
-        ActionButtonsSection(
+      ActionButtonsSection(
         tour: tour,
-                    userRoles: userRoles,
-                    remarksController: remarksController,
+        userRoles: userRoles,
+        remarksController: remarksController,
 
-                    onApprove: () {
-                    approveTour(
-                    tour,
-                    "APPROVE",
-                    );
-                    },
+        onApprove: () {
+          approveTour(
+            tour,
+            "APPROVE",
+          );
+        },
 
-                    onReject: () {
-                    approveTour(
-                    tour,
-                    "REJECT",
-                    );
-                    },
+        onReject: () {
+          approveTour(
+            tour,
+            "REJECT",
+          );
+        },
 
-                    onExecute: () {
-                    updateExecution(
-                    tour,
-                    "EXECUTED",
-                    );
-                    },
+        onExecute: () {
+          approveTour(
+            tour,
+            "EXECUTED",
+          );
+        },
 
-                    onNotExecute: () {
-                    updateExecution(
-                    tour,
-                    "NOT_EXECUTED",
-                    );
-                    },
-                    ),
+        onNotExecute: () {
+          approveTour(
+            tour,
+            "NOT_EXECUTED",
+          );
+        },
+      ),
 
   ]
   );
@@ -411,54 +413,7 @@ String action,
 
   }
 
-}
-Future updateExecution(
 
-Map tour,
-
-String status,
-
-) async{
-
-  final result =
-
-      await ApiService.confirmJourney(
-
-    tourId:
-
-    tour["TOUR_ID"].toString(),
-
-    confirmationStatus:
-
-    status,
-
-    remarks:
-
-    remarksController.text,
-
-  );
-
-  if(result!=null){
-
-    remarksController.clear();
-
-    loadActionList();
-
-    ScaffoldMessenger.of(context)
-
-        .showSnackBar(
-
-      SnackBar(
-
-        content:
-
-        Text(result["message"]),
-
-      ),
-
-    );
-
-  }
 
 }
 }

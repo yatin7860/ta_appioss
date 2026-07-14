@@ -126,8 +126,22 @@ class ActionButtonsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fullyApproved =
+    ApiService.isFullyApproved(tour);
+
+    final confirmationPending =
+    ApiService.isConfirmationPending(tour);
+
+    final isReportingIncharge =
+    userRoles.contains("REPORTING_INCHARGE");
+
+    debugPrint("===== EXECUTION CHECK =====");
+    debugPrint("Fully Approved : $fullyApproved");
+    debugPrint("Confirmation Pending : $confirmationPending");
+    debugPrint("Reporting Incharge : $isReportingIncharge");
     return Column(
       children: [
+
 
         /// ================================
         /// APPROVAL SECTION
@@ -183,6 +197,7 @@ class ActionButtonsSection extends StatelessWidget {
           const SizedBox(height: 20),
 
         ],
+
 
                 /// ================================
         /// EXECUTION SECTION

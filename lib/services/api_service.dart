@@ -13,7 +13,7 @@ class ApiService {
       ) async {
 
     var url = Uri.parse(
-      "http://192.168.1.10:8080/prsc_ta/authenticateApi",
+      "http://192.168.1.99:8090/prsc_ta/authenticateApi",
     );
 
     var request =
@@ -91,7 +91,7 @@ class ApiService {
     try {
 
       var url = Uri.parse(
-        "http://192.168.1.10:8080/prsc_ta/changePasswordApi",
+        "http://192.168.1.99:8090/prsc_ta/changePasswordApi",
       );
 
       var request =
@@ -218,7 +218,7 @@ class ApiService {
       // ================= API =================
 
       var url = Uri.parse(
-        "http://192.168.1.10:8080/prsc_ta/userprofileApi",
+        "http://192.168.1.99:8090/prsc_ta/userprofileApi",
       );
 
       String logId =
@@ -362,7 +362,7 @@ getTourDropdownData() async {
       print("COOKIE FOUND : $cookie");
 
       var url = Uri.parse(
-        "http://192.168.1.10:8080/prsc_ta/inserttourApi",
+        "http://192.168.1.99:8090/prsc_ta/inserttourApi",
       );
 
       var request = http.MultipartRequest(
@@ -495,7 +495,7 @@ getTourDropdownData() async {
       print("MY TOUR LIST LOG ID : $logId");
 
       var url = Uri.parse(
-        "http://192.168.1.10:8080/prsc_ta/mytourlistApi",
+        "http://192.168.1.99:8090/prsc_ta/mytourlistApi",
       );
 
       var request = http.MultipartRequest(
@@ -535,7 +535,7 @@ static Future<Map<String, dynamic>?> getTourDetails(
   try {
 
     var url = Uri.parse(
-      "http://192.168.1.10:8080/prsc_ta/longtour",
+      "http://192.168.1.99:8090/prsc_ta/longtour",
     );
 
     var request = http.MultipartRequest(
@@ -579,7 +579,7 @@ static Future<Map<String, dynamic>?> getActionList() async {
     String logId = prefs.getString("log_id") ?? "";
 
     var url = Uri.parse(
-      "http://192.168.1.10:8080/prsc_ta/actionlistApi",
+      "http://192.168.1.99:8090/prsc_ta/actionlistApi",
     );
 
     var request = http.MultipartRequest(
@@ -637,7 +637,7 @@ static Future<Map<String, dynamic>?> approveTour({
 
     var url = Uri.parse(
 
-      "http://192.168.1.10:8080/prsc_ta/approvelApi",
+      "http://192.168.1.99:8090/prsc_ta/approvelApi",
 
     );
 
@@ -704,7 +704,7 @@ static Future<Map<String, dynamic>?> approveTour({
     print("COOKIE : $cookie");
 
     var url = Uri.parse(
-      "http://192.168.1.10:8080/prsc_ta/employeetourlistApi",
+      "http://192.168.1.99:8090/prsc_ta/employeetourlistApi",
     );
 
     print("URL : $url");
@@ -795,7 +795,7 @@ static Future<Map<String,dynamic>?> confirmJourney({
 
     var url = Uri.parse(
 
-      "http://192.168.1.10:8080/prsc_ta/confirmJourneyApi",
+      "http://192.168.1.99:8090/prsc_ta/confirmJourneyApi",
 
     );
 
@@ -882,6 +882,7 @@ static Future<String> getLoggedUserEmail() async {
     role == "REPORTING_INCHARGE" ||
         role == "PROJECT_INCHARGE" ||
         role == "VEHICLE_INCHARGE" ||
+        role == "ACCOUNT_OFFICER_1" ||
         role == "ACCOUNT_OFFICE" ||
         role == "DIRECTOR");
   }
@@ -957,18 +958,27 @@ static Future<String> getLoggedUserEmail() async {
 
     }
 
-    if (roles.contains("ACCOUNT_OFFICE")) {
+    if (roles.contains("ACCOUNT_OFFICER_1") ||
+        roles.contains("ACCOUNT_OFFICE")) {
 
-      if (tour["VI_STATUS"] == "Action not Required") {
+      final viStatus =
+      tour["VI_STATUS"].toString().trim().toUpperCase();
 
-        return tour["PI_STATUS"] == "APPROVE" &&
-            tour["AO_STATUS"] == "PENDING";
+      final piStatus =
+      tour["PI_STATUS"].toString().trim().toUpperCase();
 
+      final aoStatus =
+      tour["AO_STATUS"].toString().trim().toUpperCase();
+
+      // Vehicle approval not required
+      if (viStatus == "ACTION NOT REQUIRED") {
+        return piStatus == "APPROVE" &&
+            aoStatus == "PENDING";
       }
 
-      return tour["VI_STATUS"] == "APPROVE" &&
-          tour["AO_STATUS"] == "PENDING";
-
+      // Vehicle approval required
+      return viStatus == "APPROVE" &&
+          aoStatus == "PENDING";
     }
 
     if (roles.contains("DIRECTOR") &&

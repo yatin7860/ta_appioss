@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/pdf_service.dart';
+import 'map_view_screen.dart';
 
 class TourDetailsScreen extends StatefulWidget {
   final String tourId;
@@ -858,6 +859,46 @@ ExpansionTile(
                 statusRow(
                   "Confirmation Status",
                   journey["CONFIRMATION_STATUS_"],
+                ),
+                const SizedBox(height: 20),
+
+                SizedBox(
+
+                  width: double.infinity,
+
+                  child: ElevatedButton.icon(
+
+                    icon: const Icon(Icons.map),
+
+                    label: const Text("View Map"),
+
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                    ),
+
+                    onPressed: () {
+
+                      Navigator.push(
+
+                        context,
+
+                        MaterialPageRoute(
+
+                          builder: (_) => MapViewScreen(
+
+                            tourId: tour!["TOUR_ID"].toString(),
+
+                          ),
+
+                        ),
+
+                      );
+
+                    },
+
+                  ),
+
                 ),
 
               ],
