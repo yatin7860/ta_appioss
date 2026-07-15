@@ -860,46 +860,7 @@ ExpansionTile(
                   "Confirmation Status",
                   journey["CONFIRMATION_STATUS_"],
                 ),
-                const SizedBox(height: 20),
 
-                SizedBox(
-
-                  width: double.infinity,
-
-                  child: ElevatedButton.icon(
-
-                    icon: const Icon(Icons.map),
-
-                    label: const Text("View Map"),
-
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-
-                    onPressed: () {
-
-                      Navigator.push(
-
-                        context,
-
-                        MaterialPageRoute(
-
-                          builder: (_) => MapViewScreen(
-
-                            tourId: tour!["TOUR_ID"].toString(),
-
-                          ),
-
-                        ),
-
-                      );
-
-                    },
-
-                  ),
-
-                ),
 
               ],
 
@@ -913,9 +874,130 @@ ExpansionTile(
 
     ),
 
+
   ],
 
 ),
+                      ExpansionTile(
+
+                        initiallyExpanded: false,
+
+                        backgroundColor: Colors.blue,
+
+                        collapsedBackgroundColor: Colors.blue,
+
+                        iconColor: Colors.white,
+
+                        collapsedIconColor: Colors.white,
+
+                        textColor: Colors.white,
+
+                        collapsedTextColor: Colors.white,
+
+                        leading: const Icon(
+                          Icons.map,
+                          color: Colors.white,
+                        ),
+
+                        title: const Text(
+                          "Tour Map",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        children: [
+
+                          Padding(
+
+                            padding: const EdgeInsets.all(15),
+
+                            child: Card(
+
+                              elevation: 3,
+
+                              shape: RoundedRectangleBorder(
+
+                                borderRadius: BorderRadius.circular(12),
+
+                              ),
+
+                              child: Padding(
+
+                                padding: const EdgeInsets.all(16),
+
+                                child: Column(
+
+                                  children: [
+
+                                    const Icon(
+                                      Icons.map,
+                                      size: 60,
+                                      color: Colors.blue,
+                                    ),
+
+                                    const SizedBox(height: 15),
+
+                                    const Text(
+
+                                      "View GPS route of this tour",
+
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+
+                                    ),
+
+                                    const SizedBox(height: 20),
+
+                                    SizedBox(
+
+                                      width: double.infinity,
+
+                                      child: ElevatedButton.icon(
+
+                                        icon: const Icon(Icons.map),
+
+                                        label: const Text("View Map"),
+
+                                        onPressed: () {
+
+                                          Navigator.push(
+
+                                            context,
+
+                                            MaterialPageRoute(
+
+                                              builder: (_) => MapViewScreen(
+
+                                                tourId: tour!["TOUR_ID"].toString(),
+
+                                              ),
+
+                                            ),
+
+                                          );
+
+                                        },
+
+                                      ),
+
+                                    ),
+
+                                  ],
+
+                                ),
+
+                              ),
+
+                            ),
+
+                          ),
+
+                        ],
+
+                      ),
         ]
                   )
     )

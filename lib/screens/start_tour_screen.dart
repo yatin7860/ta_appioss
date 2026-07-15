@@ -756,16 +756,28 @@ class _StartTourScreenState extends State<StartTourScreen>
 
       if (Platform.isAndroid) {
 
+        final notificationPermission =
+        await FlutterForegroundTask.checkNotificationPermission();
+
+        if (notificationPermission != NotificationPermission.granted) {
+          await FlutterForegroundTask.requestNotificationPermission();
+        }
+
+        if (!await FlutterForegroundTask.isIgnoringBatteryOptimizations) {
+          await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+        }
+
+        debugPrint("Before startService");
+
         await FlutterForegroundTask.startService(
-
-          notificationTitle:
-          'Tour Tracking Active',
-
-          notificationText:
-          'Background tracking running',
-
+          notificationTitle: "Tour Tracking Active",
+          notificationText: "Background tracking running",
           callback: startCallback,
         );
+
+        debugPrint("After startService");
+
+
       }
 
       // RESET TOUR DATA
@@ -808,11 +820,11 @@ class _StartTourScreenState extends State<StartTourScreen>
           ),
         ),
       );
-    } catch (e) {
-      debugPrint(
-        "START TOUR ERROR: $e",
-      );
+    } catch (e, stack) {
+      debugPrint("START TOUR ERROR: $e");
+      debugPrint(stack.toString());
     }
+
   }
 
   // ================= PAUSE =================
