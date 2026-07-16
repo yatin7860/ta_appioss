@@ -317,6 +317,9 @@ class _ApplyTourScreenState
           content: Text("Please add at least one journey."),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
     }
@@ -333,6 +336,9 @@ class _ApplyTourScreenState
           content: Text("Purpose of Visit is Required"),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -346,6 +352,9 @@ class _ApplyTourScreenState
           content: Text("Invalid Sanction Amount"),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -358,6 +367,9 @@ class _ApplyTourScreenState
           content: Text("Start Date is Required"),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -370,6 +382,9 @@ class _ApplyTourScreenState
           content: Text("End Date is Required"),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -384,6 +399,9 @@ class _ApplyTourScreenState
           ),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -398,6 +416,9 @@ class _ApplyTourScreenState
           ),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -412,6 +433,9 @@ class _ApplyTourScreenState
           ),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -427,6 +451,9 @@ class _ApplyTourScreenState
           ),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -441,6 +468,9 @@ class _ApplyTourScreenState
           ),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -454,6 +484,9 @@ class _ApplyTourScreenState
           content: Text("Select Tour Type"),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -466,6 +499,9 @@ class _ApplyTourScreenState
           content: Text("Select Project Scheme"),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -478,6 +514,9 @@ class _ApplyTourScreenState
           content: Text("Place to be Visited is Required"),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -494,6 +533,9 @@ class _ApplyTourScreenState
             ),
           ),
         );
+        setState(() {
+          isSubmitting = false;
+        });
 
         return;
 
@@ -510,6 +552,9 @@ class _ApplyTourScreenState
             ),
           ),
         );
+        setState(() {
+          isSubmitting = false;
+        });
 
         return;
 
@@ -526,6 +571,9 @@ class _ApplyTourScreenState
           ),
         ),
       );
+      setState(() {
+        isSubmitting = false;
+      });
 
       return;
 
@@ -542,6 +590,9 @@ class _ApplyTourScreenState
             ),
           ),
         );
+        setState(() {
+          isSubmitting = false;
+        });
 
         return;
 
@@ -558,6 +609,9 @@ class _ApplyTourScreenState
             ),
           ),
         );
+        setState(() {
+          isSubmitting = false;
+        });
 
         return;
 
@@ -578,6 +632,9 @@ class _ApplyTourScreenState
             ),
           ),
         );
+        setState(() {
+          isSubmitting = false;
+        });
 
         return;
 
@@ -595,6 +652,9 @@ class _ApplyTourScreenState
             content: Text("Enter Advance Amount"),
           ),
         );
+        setState(() {
+          isSubmitting = false;
+        });
 
         return;
       }
@@ -607,6 +667,9 @@ class _ApplyTourScreenState
             content: Text("Select Advance Submission Date"),
           ),
         );
+        setState(() {
+          isSubmitting = false;
+        });
 
         return;
       }
@@ -695,6 +758,9 @@ class _ApplyTourScreenState
 
     final response = await ApiService.submitTour(body);
 
+    setState(() {
+      isSubmitting = false;
+    });
     print("SUBMIT RESPONSE : $response");
 
     if (!mounted) return;
