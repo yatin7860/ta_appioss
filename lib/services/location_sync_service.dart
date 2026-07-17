@@ -10,7 +10,7 @@ import 'retry_service.dart';
 class LocationSyncService {
 
   static const String api =
-      "http://192.168.1.99:8090/prsc_ta/savelocationdata";
+      "http://192.168.1.65/prsc_ta/savelocationdata";
 
   static Future<bool> uploadLocations() async {
 

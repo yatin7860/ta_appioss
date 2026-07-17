@@ -193,7 +193,7 @@ builder: (_) => const EmployeeTourListScreen(),
 ),
 if (
 
-role.contains("VEHICLE_INCHARGE")
+role.contains("DRIVER,USER")
 
 )
 

@@ -32,7 +32,7 @@ class _MapViewScreenState
 
       ..loadRequest(
         Uri.parse(
-          "http://192.168.1.99:8090/prsc_ta/mapview/${widget.tourId}",
+          "http://192.168.1.65/prsc_ta/mapview/${widget.tourId}",
         ),
       );
   }

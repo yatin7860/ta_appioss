@@ -63,6 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
         print("SAVED LOG ID = ${prefs.getString('log_id')}");
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('username', name);
+        await prefs.setString('name', name);
         await prefs.setString('email', email);
         await prefs.setString('emp_id', empId);
         await prefs.setString('log_id', logId);

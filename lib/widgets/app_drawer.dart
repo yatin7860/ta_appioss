@@ -72,13 +72,9 @@ bool isApprover() {
 
 }
 
-bool isVehicleIncharge() {
-
-  return role
-      .toUpperCase()
-      .contains("VEHICLE_INCHARGE");
-
-}
+  bool isDriver() {
+    return role.toUpperCase().contains("DRIVER,USER");
+  }
  Future<void> logout(BuildContext context) async {
 
     bool? confirm = await showDialog(
@@ -309,31 +305,19 @@ print("CURRENT ROLE : $role");
 
   ),
 
-          if (isVehicleIncharge())
-
-  ListTile(
-
-    leading: const Icon(Icons.local_taxi),
-
-    title: const Text("Drivers Tour List"),
-
-            onTap: () {
-
-              Navigator.push(
-
-                context,
-
-                MaterialPageRoute(
-
-                  builder: (_)=>const DriversTourListScreen(),
-
-                ),
-
-              );
-
-            },
-
-          ),
+          if (isDriver())
+            ListTile(
+              leading: const Icon(Icons.local_taxi),
+              title: const Text("Drivers Tour List"),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const DriversTourListScreen(),
+                  ),
+                );
+              },
+            ),
 
           ListTile(
 
