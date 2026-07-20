@@ -102,13 +102,16 @@ class ConfirmationCard extends StatelessWidget {
 /// =======================================================
 /// ACTION BUTTONS SECTION
 /// =======================================================
-
-class ActionButtonsSection extends StatelessWidget {
+class ActionButtonsSection extends StatefulWidget {
   final Map tour;
   final List<String> userRoles;
   final TextEditingController remarksController;
 
-  final VoidCallback onApprove;
+  final Function(
+      String vehicle,
+      String driver,
+      ) onApprove;
+
   final VoidCallback onReject;
   final VoidCallback onExecute;
   final VoidCallback onNotExecute;
@@ -125,34 +128,160 @@ class ActionButtonsSection extends StatelessWidget {
   });
 
   @override
+  State<ActionButtonsSection> createState() =>
+      _ActionButtonsSectionState();
+}
+
+class _ActionButtonsSectionState
+    extends State<ActionButtonsSection> {
+
+  List<String> vehicles = [];
+
+  List<String> drivers = [];
+
+  String? selectedVehicle;
+
+  String? selectedDriver;
+
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    loadVehicleData();
+  }
+
+  Future<void> loadVehicleData() async {
+    final data =
+    await ApiService.getVehicleDriverOptions();
+
+    if (data != null &&
+        data["success"] == true) {
+
+      vehicles =
+          (data["vehicle_number"] as List)
+              .map(
+                (e) => e["VEHICLE_NUMBER"]
+                .toString(),
+          )
+              .toList();
+
+      drivers =
+          (data["driver_name"] as List)
+              .map(
+                (e) => e["DRIVER_NAME"]
+                .toString(),
+          )
+              .toList();
+    }
+
+    if (mounted) {
+      setState(() {
+        loading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+
     final fullyApproved =
-    ApiService.isFullyApproved(tour);
+    ApiService.isFullyApproved(
+      widget.tour,
+    );
 
     final confirmationPending =
-    ApiService.isConfirmationPending(tour);
+    ApiService.isConfirmationPending(
+      widget.tour,
+    );
 
     final isReportingIncharge =
-    userRoles.contains("REPORTING_INCHARGE");
+    widget.userRoles.contains(
+      "REPORTING_INCHARGE",
+    );
 
-    debugPrint("===== EXECUTION CHECK =====");
-    debugPrint("Fully Approved : $fullyApproved");
-    debugPrint("Confirmation Pending : $confirmationPending");
-    debugPrint("Reporting Incharge : $isReportingIncharge");
+    debugPrint(
+      "===== EXECUTION CHECK =====",
+    );
+
+    debugPrint(
+      "Fully Approved : $fullyApproved",
+    );
+
+    debugPrint(
+      "Confirmation Pending : $confirmationPending",
+    );
+
+    debugPrint(
+      "Reporting Incharge : $isReportingIncharge",
+    );
+
     return Column(
       children: [
-
 
         /// ================================
         /// APPROVAL SECTION
         /// ================================
+
         if (ApiService.canCurrentRoleApprove(
-          tour,
-          userRoles,
+          widget.tour,
+          widget.userRoles,
         )) ...[
 
+// Vehicle & Driver Dropdown only for Vehicle Incharge
+          if (widget.userRoles.contains("VEHICLE_INCHARGE") ||
+              widget.userRoles.contains("VEHICLE_INCHARGE_1") ||
+              widget.userRoles.contains("VEHICLE_INCHARGE_2")) ...[
+
+            DropdownButtonFormField<String>(
+              value: selectedVehicle,
+              decoration: InputDecoration(
+                labelText: "Vehicle Number",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              items: vehicles.map((vehicle) {
+                return DropdownMenuItem<String>(
+                  value: vehicle,
+                  child: Text(vehicle),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedVehicle = value;
+                });
+              },
+            ),
+
+            const SizedBox(height: 15),
+
+            DropdownButtonFormField<String>(
+              value: selectedDriver,
+              decoration: InputDecoration(
+                labelText: "Driver Name",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              items: drivers.map((driver) {
+                return DropdownMenuItem<String>(
+                  value: driver,
+                  child: Text(driver),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedDriver = value;
+                });
+              },
+            ),
+
+            const SizedBox(height: 15),
+          ],
+
           TextField(
-            controller: remarksController,
+            controller: widget.remarksController,
             maxLines: 3,
             decoration: InputDecoration(
               labelText: "Remarks",
@@ -173,7 +302,12 @@ class ActionButtonsSection extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.green,
                   ),
-                  onPressed: onApprove,
+                  onPressed: () {
+                    widget.onApprove(
+                      selectedVehicle ?? "",
+                      selectedDriver ?? "",
+                    );
+                  },
                   label: const Text("Approve"),
                 ),
               ),
@@ -186,7 +320,7 @@ class ActionButtonsSection extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.red,
                   ),
-                  onPressed: onReject,
+                  onPressed: widget.onReject,
                   label: const Text("Reject"),
                 ),
               ),
@@ -199,15 +333,17 @@ class ActionButtonsSection extends StatelessWidget {
         ],
 
 
-                /// ================================
+
+
+
         /// EXECUTION SECTION
         /// ================================
-        if (ApiService.isFullyApproved(tour) &&
-            ApiService.isConfirmationPending(tour) &&
-            userRoles.contains("REPORTING_INCHARGE")) ...[
+        if (ApiService.isFullyApproved(widget.tour) &&
+            ApiService.isConfirmationPending(widget.tour) &&
+            widget.userRoles.contains("REPORTING_INCHARGE")) ...[
 
           TextField(
-            controller: remarksController,
+            controller: widget.remarksController,
             maxLines: 3,
             decoration: InputDecoration(
               labelText: "Execution Remarks",
@@ -227,7 +363,7 @@ class ActionButtonsSection extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.green,
                   ),
-                  onPressed: onExecute,
+                  onPressed: widget.onExecute,
                   child: const Text(
                     "Execute All",
                   ),
@@ -241,7 +377,7 @@ class ActionButtonsSection extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.red,
                   ),
-                  onPressed: onNotExecute,
+                  onPressed: widget.onNotExecute,
                   child: const Text(
                     "Not Execute",
                   ),

@@ -9,6 +9,7 @@ import 'action_list_screen.dart';
 import 'employee_tour_list_screen.dart';
 import 'drivers_tour_list.dart';
 import '../widgets/app_drawer.dart';
+import '../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String name;
@@ -23,48 +24,78 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String email = "";
   String role = "";
+  int myTourCount = 0;
+  int employeeTourCount = 0;
+  int actionTourCount = 0;
+  int driverTourCount = 0;
 
   @override
- 
   void initState() {
     super.initState();
     loadUserData();
+    loadDashboardCount();
   }
 
   void loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
 
-  final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      email = prefs.getString("email") ?? "";
 
-  setState(() {
+      role = prefs.getString("role") ?? "";
+    });
 
-    email = prefs.getString("email") ?? "";
+    print("HOME ROLE : $role");
+  }
+//
+  Future<void> loadDashboardCount() async {
 
-    role = prefs.getString("role") ?? "";
+    final result = await ApiService.getDashboardCount();
 
-  });
+    if (result != null && result["success"] == true) {
 
-  print("HOME ROLE : $role");
+      final data = result["data"];
 
-}
+      setState(() {
+
+        // API key is My_tour_list_Count (with underscore before Count)
+        myTourCount =
+            data["My_tour_list_Count"] ?? 0;
+
+        employeeTourCount =
+            data["Employee_tour_listcount"] ?? 0;
+
+        actionTourCount =
+            data["Action_tour_listcount"] ?? 0;
+
+        driverTourCount =
+            data["driverlistcount"] ?? 0;
+
+      });
+
+    }
+
+  }
 
   // ================= LOGOUT =================
   void logout(BuildContext context) async {
     bool? confirm = await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Logout"),
-        content: const Text("Are you sure you want to logout?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+      builder: (context) =>
+          AlertDialog(
+            title: const Text("Logout"),
+            content: const Text("Are you sure you want to logout?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text("Logout"),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Logout"),
-          ),
-        ],
-      ),
     );
 
     if (confirm == true) {
@@ -81,7 +112,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     // ================= DASHBOARD CARDS =================
     List<Widget> cards = [
       buildCard(
@@ -102,6 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.calendar_today,
         title: "My Tour List",
         color: Colors.green,
+        count: myTourCount,
         onTap: () {
           Navigator.push(
             context,
@@ -112,116 +143,116 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
 
-  if (
+      if (
 
-role.contains("PROJECT_INCHARGE") ||
+      role.contains("PROJECT_INCHARGE") ||
 
-role.contains("REPORTING_INCHARGE") ||
+          role.contains("REPORTING_INCHARGE") ||
 
-role.contains("ACCOUNT") ||
+          role.contains("ACCOUNT") ||
 
-role.contains("DIRECTOR") ||
+          role.contains("DIRECTOR") ||
 
-role.contains("VEHICLE_INCHARGE")
+          role.contains("VEHICLE_INCHARGE")
 
-)
+      )
 
-buildCard(
+        buildCard(
 
-icon: Icons.check_circle,
+          icon: Icons.check_circle,
 
-title: "Action List",
+          title: "Action List",
 
-color: Colors.red,
+          color: Colors.red,
 
-onTap: () {
+          count: actionTourCount,
 
-Navigator.push(
+          onTap: () {
+            Navigator.push(
 
-context,
+              context,
 
-MaterialPageRoute(
+              MaterialPageRoute(
 
-builder: (_) => const ActionListScreen(),
+                builder: (_) => const ActionListScreen(),
 
-),
+              ),
 
-);
+            );
+          },
 
-},
+        ),
 
-),
+      if (
 
-if (
+      role.contains("PROJECT_INCHARGE") ||
 
-role.contains("PROJECT_INCHARGE") ||
+          role.contains("REPORTING_INCHARGE") ||
 
-role.contains("REPORTING_INCHARGE") ||
+          role.contains("ACCOUNT") ||
 
-role.contains("ACCOUNT") ||
+          role.contains("DIRECTOR") ||
 
-role.contains("DIRECTOR") ||
+          role.contains("VEHICLE_INCHARGE")
 
-role.contains("VEHICLE_INCHARGE")
+      )
 
-)
+        buildCard(
 
-buildCard(
+          icon: Icons.groups,
 
-icon: Icons.groups,
+          title: "Employee Tour List",
 
-title: "Employee Tour List",
+          color: Colors.amber,
 
-color: Colors.amber,
+          count: employeeTourCount,
 
-onTap: () {
+          onTap: () {
+            Navigator.push(
 
-Navigator.push(
+              context,
 
-context,
+              MaterialPageRoute(
 
-MaterialPageRoute(
+                builder: (_) => const EmployeeTourListScreen(),
 
-builder: (_) => const EmployeeTourListScreen(),
+              ),
 
-),
+            );
+          },
 
-);
+        ),
+      if (
 
-},
+      role.contains("DRIVER,USER")
 
-),
-if (
+      )
 
-role.contains("DRIVER,USER")
+        buildCard(
 
-)
+          icon: Icons.local_taxi,
 
-buildCard(
+          title: "Drivers Tour List",
 
-icon: Icons.local_taxi,
+          color: Colors.amber,
 
-title: "Drivers Tour List",
+          count: driverTourCount,
 
-color: Colors.amber,
+          onTap: () {
+            Navigator.push(
 
-onTap: () {
+              context,
 
-Navigator.push(
+              MaterialPageRoute(
 
-context,
+                builder: (_) => const DriversTourListScreen(),
 
-MaterialPageRoute(
+              ),
 
-builder: (_) => const DriversTourListScreen(),
+            );
+          },
 
-),
-
-);
-
-},
-
-),
+        ),
 
       buildCard(
         icon: Icons.person,
@@ -256,9 +287,9 @@ builder: (_) => const DriversTourListScreen(),
 
       ///drawer
       drawer: AppDrawer(
-  name: widget.name,
-  email: email,
-),
+        name: widget.name,
+        email: email,
+      ),
 
       // ================= APPBAR =================
       appBar: AppBar(
@@ -273,7 +304,8 @@ builder: (_) => const DriversTourListScreen(),
                 logout(context);
               }
             },
-            itemBuilder: (context) => [
+            itemBuilder: (context) =>
+            [
               const PopupMenuItem(
                 value: "logout",
                 child: Row(
@@ -331,6 +363,7 @@ builder: (_) => const DriversTourListScreen(),
     required String title,
     required Color color,
     required VoidCallback onTap,
+    int count = -1,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -339,22 +372,47 @@ builder: (_) => const DriversTourListScreen(),
           color: color,
           borderRadius: BorderRadius.circular(15),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    title,
-                    style: const TextStyle(color: Colors.white),
+        child: Stack(
+          children: [
+
+            if (count >= 0)
+              Positioned(
+                top: 10,
+                right: 12,
+                child: Text(
+                  count.toString(),
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
               ),
-            ],
-          ),
+
+            Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+
+                  Icon(icon, color: Colors.white),
+
+                  const SizedBox(width: 10),
+
+                  Flexible(
+                    child: Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+
+                ],
+              ),
+            ),
+
+          ],
         ),
       ),
     );

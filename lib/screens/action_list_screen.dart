@@ -201,10 +201,12 @@ class _ActionListScreenState
         userRoles: userRoles,
         remarksController: remarksController,
 
-        onApprove: () {
+        onApprove: (vehicle, driver) {
           approveTour(
             tour,
             "APPROVE",
+            vehicle,
+            driver,
           );
         },
 
@@ -212,13 +214,16 @@ class _ActionListScreenState
           approveTour(
             tour,
             "REJECT",
+            "",
+            "",
           );
         },
-
         onExecute: () {
           approveTour(
             tour,
             "EXECUTED",
+            "",
+            "",
           );
         },
 
@@ -226,6 +231,8 @@ class _ActionListScreenState
           approveTour(
             tour,
             "NOT_EXECUTED",
+            "",
+            "",
           );
         },
       ),
@@ -360,36 +367,38 @@ class _ActionListScreenState
     );
   }
 
-  
+
   Future approveTour(
 
-Map tour,
+      Map tour,
 
-String action,
+      String action,
 
-) async {
+      String vehicle,
 
-  final result =
+      String driver,
 
-      await ApiService.approveTour(
+      ) async {
 
-    tourId:
+    final result =
+    await ApiService.approveTour(
 
-    tour["TOUR_ID"].toString(),
+      tourId:
+      tour["TOUR_ID"].toString(),
 
-    action: action,
+      action: action,
 
-    remarks:
+      remarks:
+      remarksController.text,
 
-    remarksController.text,
+      email:
+      await ApiService.getLoggedUserEmail(),
 
-    email:
+      vehicleName: vehicle,
 
-    await ApiService
+      driverName: driver,
 
-        .getLoggedUserEmail(),
-
-  );
+    );
 
   if(result!=null){
 

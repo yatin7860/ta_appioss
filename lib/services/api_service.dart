@@ -842,65 +842,138 @@ static Future<Map<String, dynamic>?> approveTour({
   }
 //================ CONFIRM JOURNEY API =================//
 
-static Future<Map<String,dynamic>?> confirmJourney({
+  static Future<Map<String, dynamic>?> confirmJourney({
 
-  required String tourId,
+    required String longTourId,
 
-  required String confirmationStatus,
+    required String action,
 
-  required String remarks,
+    required String remarks,
 
-}) async {
+  }) async {
 
-  try{
+    try {
 
-    var url = Uri.parse(
+      var url = Uri.parse(
+        "http://192.168.1.65/prsc_ta/confirmJourneyApi",
+      );
 
-      "http://192.168.1.65/prsc_ta/confirmJourneyApi",
+      var request = http.MultipartRequest(
+        "POST",
+        url,
+      );
 
-    );
+      request.fields["long_tour_id"] = longTourId;
+      request.fields["action"] = action;
+      request.fields["remarks"] = remarks;
 
-    var request = http.MultipartRequest(
+      print(request.fields);
 
-      "POST",
+      var response = await request.send();
 
-      url,
+      var res = await response.stream.bytesToString();
 
-    );
+      print(res);
 
-    request.fields["tour_id"]=tourId;
+      if (response.statusCode == 200) {
+        return jsonDecode(res);
+      }
 
-    request.fields["confirmation_status"]=confirmationStatus;
+    } catch (e) {
+      print(e);
+    }
 
-    request.fields["remarks"]=remarks;
+    return null;
+  }
+//driver list
+  static Future<Map<String, dynamic>?> getVehicleDriverOptions() async {
 
-    print("CONFIRM REQUEST");
+    try {
 
-    print(request.fields);
+      final prefs = await SharedPreferences.getInstance();
 
-    var response=await request.send();
+      String logId = prefs.getString("log_id") ?? "";
 
-    var res=await response.stream.bytesToString();
+      var url = Uri.parse(
+        "http://192.168.1.65/prsc_ta/vioptiondata",
+      );
 
-    print("CONFIRM STATUS : ${response.statusCode}");
+      var request = http.MultipartRequest(
+        "POST",
+        url,
+      );
 
-    print("CONFIRM RESPONSE : $res");
+      request.fields["log_id"] = logId;
 
-    if(response.statusCode==200){
+      print("VI OPTION REQUEST");
+      print(request.fields);
 
-      return jsonDecode(res);
+      var response = await request.send();
+
+      var res = await response.stream.bytesToString();
+
+      print("VI OPTION STATUS : ${response.statusCode}");
+      print("VI OPTION RESPONSE : $res");
+
+      if (response.statusCode == 200) {
+
+        return jsonDecode(res);
+
+      }
+
+    } catch (e) {
+
+      print("VI OPTION ERROR : $e");
 
     }
 
-  }catch(e){
-
-    print("CONFIRM ERROR : $e");
-
+    return null;
   }
 
-  return null;
+  //dashboard
+  static Future<Map<String, dynamic>?> getDashboardCount() async {
 
-}
+    try {
+
+      final prefs = await SharedPreferences.getInstance();
+
+      String logId = prefs.getString("log_id") ?? "";
+      String name = prefs.getString("name") ?? "";
+
+      var url = Uri.parse(
+        "http://192.168.1.65/prsc_ta/dashboardApi",
+      );
+
+      var request = http.MultipartRequest(
+        "POST",
+        url,
+      );
+
+      request.fields["log_id"] = logId;
+      request.fields["name"] = name;
+
+      print("DASHBOARD REQUEST");
+      print(request.fields);
+
+      var response = await request.send();
+
+      var res = await response.stream.bytesToString();
+
+      print("DASHBOARD RESPONSE");
+      print(res);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(res);
+      }
+
+    } catch (e) {
+
+      print("DASHBOARD ERROR : $e");
+
+    }
+
+    return null;
+  }
 //================ GET USER ROLE =================//
 
   static Future<List<String>> getUserRoles() async {
@@ -943,6 +1016,8 @@ static Future<String> getLoggedUserEmail() async {
     role == "REPORTING_INCHARGE" ||
         role == "PROJECT_INCHARGE" ||
         role == "VEHICLE_INCHARGE" ||
+        role == "VEHICLE_INCHARGE_1" ||
+        role == "VEHICLE_INCHARGE_2" ||
         role == "ACCOUNT_OFFICER_1" ||
         role == "ACCOUNT_OFFICE" ||
         role == "DIRECTOR");
@@ -1002,7 +1077,10 @@ static Future<String> getLoggedUserEmail() async {
 
     }
 
-    if (roles.contains("VEHICLE_INCHARGE")) {
+    if (roles.contains("VEHICLE_INCHARGE") ||
+roles.contains("VEHICLE_INCHARGE_1") ||
+    roles.contains("VEHICLE_INCHARGE_2")){
+
 
       if (tour["VI_STATUS"] == "Action not Required") {
 

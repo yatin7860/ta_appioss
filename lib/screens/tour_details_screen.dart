@@ -63,6 +63,42 @@ Future<void> loadData() async {
   }
 }
 
+  Future<void> updateJourneyStatus(
+
+      String longTourId,
+
+      String action,
+
+      ) async {
+
+    final result = await ApiService.confirmJourney(
+
+      longTourId: longTourId,
+
+      action: action,
+
+      remarks: "",
+
+    );
+
+    if (result != null) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+
+        SnackBar(
+
+          content: Text(result["message"]),
+
+        ),
+
+      );
+
+      loadData();
+
+    }
+
+  }
+
   String value(dynamic v) {
     if (v == null) return "-";
 
@@ -752,6 +788,7 @@ ExpansionTile(
 
     ListView.builder(
 
+
       shrinkWrap: true,
 
       physics: const NeverScrollableScrollPhysics(),
@@ -761,6 +798,9 @@ ExpansionTile(
       itemBuilder: (context, index) {
 
         final journey = journeyList[index];
+        journey.forEach((key, value) {
+          debugPrint("$key : $value");
+        });
 
         return Card(
 
@@ -859,7 +899,72 @@ ExpansionTile(
                 statusRow(
                   "Confirmation Status",
                   journey["CONFIRMATION_STATUS_"],
+
+
                 ),
+                //
+                const SizedBox(height: 15),
+
+                if (journey["CONFIRMATION_STATUS_"] == "PENDING")
+                  Row(
+                    children: [
+
+                      Expanded(
+                        child: ElevatedButton.icon(
+
+                          icon: const Icon(Icons.check),
+
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                          ),
+
+                          onPressed: () {
+
+                            updateJourneyStatus(
+
+                              journey["LONG_TOUR_ID"].toString(),
+
+                              "Executed",
+
+                            );
+
+                          },
+
+                          label: const Text("Executed"),
+
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: ElevatedButton.icon(
+
+                          icon: const Icon(Icons.close),
+
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                          ),
+
+                          onPressed: () {
+
+                            updateJourneyStatus(
+
+                              journey["LONG_TOUR_ID"].toString(),
+
+                              "Not Executed",
+
+                            );
+
+                          },
+
+                          label: const Text("Not Executed"),
+
+                        ),
+                      ),
+
+                    ],
+                  ),
 
 
               ],
