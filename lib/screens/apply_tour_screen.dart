@@ -43,6 +43,8 @@ class _ApplyTourScreenState
 
   String directorEmail = "";
 
+  DateTime? journeyDate;
+
   // ================= CONTROLLERS =================
 
   final fromController =
@@ -229,20 +231,27 @@ class _ApplyTourScreenState
 
   // ================= DATE PICKER =================
 
-  Future<void> pickDate(
-      bool isStart,
-      ) async {
+  Future<void> pickDate(bool isStart) async {
 
-    DateTime? picked =
-    await showDatePicker(
+    final today = DateTime.now();
+
+    DateTime? picked = await showDatePicker(
 
       context: context,
 
-      initialDate: DateTime.now(),
+      initialDate: isStart
+          ? (startDate ?? today)
+          : (endDate ?? startDate ?? today),
 
-      firstDate: DateTime(2023),
+      // Don't allow past dates
+      firstDate: DateTime(
+        today.year,
+        today.month,
+        today.day,
+      ),
 
       lastDate: DateTime(2100),
+
     );
 
     if (picked != null) {
@@ -253,11 +262,69 @@ class _ApplyTourScreenState
 
           startDate = picked;
 
+          // Reset end date if it becomes invalid
+          if (endDate != null &&
+              endDate!.isBefore(startDate!)) {
+            endDate = null;
+          }
+
         } else {
+
+          if (startDate != null &&
+              picked.isBefore(startDate!)) {
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "End Date cannot be before Start Date",
+                ),
+              ),
+            );
+
+            return;
+          }
 
           endDate = picked;
         }
       });
+    }
+  }
+
+  Future<void> pickJourneyDate() async {
+
+    if (startDate == null || endDate == null) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Please select Tour Dates first.",
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    DateTime? picked = await showDatePicker(
+
+      context: context,
+
+      initialDate: journeyDate ?? startDate!,
+
+      firstDate: startDate!,
+
+      lastDate: endDate!,
+
+    );
+
+    if (picked != null) {
+
+      setState(() {
+
+        journeyDate = picked;
+
+      });
+
     }
   }
 
@@ -406,75 +473,7 @@ class _ApplyTourScreenState
       return;
 
     }
-//
-    if (fromController.text.trim().isEmpty) {
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Enter From Location",
-          ),
-        ),
-      );
-      setState(() {
-        isSubmitting = false;
-      });
-
-      return;
-
-    }
-//
-    if (toController.text.trim().isEmpty) {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Enter To Location",
-          ),
-        ),
-      );
-      setState(() {
-        isSubmitting = false;
-      });
-
-      return;
-
-    }
-//
-    if (fromController.text.trim().toLowerCase() ==
-        toController.text.trim().toLowerCase()) {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "From and To cannot be same",
-          ),
-        ),
-      );
-      setState(() {
-        isSubmitting = false;
-      });
-
-      return;
-
-    }
-//
-    if (selectedJourneyMode == null) {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Select Journey Mode",
-          ),
-        ),
-      );
-      setState(() {
-        isSubmitting = false;
-      });
-
-      return;
-
-    }
 //
 
     if (tourType.isEmpty) {
@@ -579,68 +578,7 @@ class _ApplyTourScreenState
 
     }
 //
-    if (selectedJourneyMode == "Taxi") {
 
-      if (selectedVehicleType == null) {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Select Vehicle Type",
-            ),
-          ),
-        );
-        setState(() {
-          isSubmitting = false;
-        });
-
-        return;
-
-      }
-
-      if (vehicleRemarksController.text
-          .trim()
-          .isEmpty) {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Vehicle Remarks Required",
-            ),
-          ),
-        );
-        setState(() {
-          isSubmitting = false;
-        });
-
-        return;
-
-      }
-
-    }
-//
-    if (selectedJourneyMode == "Other") {
-
-      if (otherJourneyController.text
-          .trim()
-          .isEmpty) {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Specify Other Journey Mode",
-            ),
-          ),
-        );
-        setState(() {
-          isSubmitting = false;
-        });
-
-        return;
-
-      }
-
-    }
 //
 
     if (showAdvance) {
@@ -795,80 +733,139 @@ class _ApplyTourScreenState
     }
 
   }
-  ///add journey
-  ///
+  // add journey
+  //
   void addJourney() {
 
-    if (startDate == null) {
-      if (this.startDate == null || endDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Select Tour Dates First",
-            ),
-          ),
-        );
-        return;
-      }
-
-      if (startDate!.isBefore(this.startDate!) ||
-          startDate!.isAfter(endDate!)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Journey Date must be between Tour Dates",
-            ),
-          ),
-        );
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Select journey date")),
-      );
-      return;
-    }
-
-    if (fromController.text.trim().isEmpty ||
-        toController.text.trim().isEmpty ||
-        selectedJourneyMode == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Fill all journey details")),
-      );
-      return;
-    }
-    //
-    bool alreadyExists =
-    journeyList.any((e) {
-
-      return e["date"] ==
-          startDate!
-              .toString()
-              .split(" ")[0] &&
-          e["from"] ==
-              fromController.text.trim() &&
-          e["to"] ==
-              toController.text.trim();
-
-    });
-
-    if (alreadyExists) {
-
+    if (startDate == null || endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            "Journey Already Added",
-          ),
+          content: Text("Please select Tour Dates first."),
         ),
       );
-
       return;
+    }
+
+    if (journeyDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Select Journey Date."),
+        ),
+      );
+      return;
+    }
+
+    if (journeyDate!.isBefore(startDate!) ||
+        journeyDate!.isAfter(endDate!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Journey Date must be between Tour Dates."),
+        ),
+      );
+      return;
+    }
+
+    if (fromController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Enter From Location."),
+        ),
+      );
+      return;
+    }
+
+    if (toController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Enter To Location."),
+        ),
+      );
+      return;
+    }
+
+    if (fromController.text.trim().toLowerCase() ==
+        toController.text.trim().toLowerCase()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("From and To cannot be same."),
+        ),
+      );
+      return;
+    }
+
+    if (selectedJourneyMode == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Select Journey Mode."),
+        ),
+      );
+      return;
+    }
+    if (selectedJourneyMode == "Taxi") {
+
+      if (selectedVehicleType == null) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Select Vehicle Type",
+            ),
+          ),
+        );
+        setState(() {
+          isSubmitting = false;
+        });
+
+        return;
+
+      }
+
+      if (vehicleRemarksController.text
+          .trim()
+          .isEmpty) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Vehicle Remarks Required",
+            ),
+          ),
+        );
+        setState(() {
+          isSubmitting = false;
+        });
+
+        return;
+
+      }
 
     }
-//
+    if (selectedJourneyMode == "Other") {
+
+      if (otherJourneyController.text
+          .trim()
+          .isEmpty) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Specify Other Journey Mode",
+            ),
+          ),
+        );
+        setState(() {
+          isSubmitting = false;
+        });
+
+        return;
+
+      }
+
+    }
 
     Map<String, dynamic> journey = {
 
-      "date": startDate!.toString().split(" ")[0],
+      "date": journeyDate!.toString().split(" ")[0],
 
       "from": fromController.text.trim(),
 
@@ -890,12 +887,6 @@ class _ApplyTourScreenState
 
       journeyList.add(journey);
 
-      print("============= JOURNEY ADDED =============");
-      print(journey);
-      print("TOTAL JOURNEYS : ${journeyList.length}");
-      print(journeyList);
-      print("========================================");
-
       fromController.clear();
       toController.clear();
       remarksController.clear();
@@ -904,13 +895,15 @@ class _ApplyTourScreenState
 
       selectedJourneyMode = null;
       selectedVehicleType = null;
-      startDate = null;
+      journeyDate = null;
 
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Journey Added Successfully"),
+      SnackBar(
+        content: Text(
+          "Journey ${journeyList.length} Added Successfully",
+        ),
       ),
     );
   }
@@ -1188,43 +1181,45 @@ class _ApplyTourScreenState
 
                   DropdownButtonFormField<String>(
                     isExpanded: true,
+                    menuMaxHeight: 500,
                     value: selectedProjectScheme,
+
                     decoration: InputDecoration(
                       hintText: "Select Project Scheme",
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 16,
                       ),
-                      enabledBorder: OutlineInputBorder(
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade500,
-                        ),
                       ),
                     ),
+
+                    selectedItemBuilder: (context) {
+                      return projectSchemes.map<Widget>((item) {
+                        return Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            item["Project_Name"],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        );
+                      }).toList();
+                    },
+
                     items: projectSchemes.map((item) {
-
                       return DropdownMenuItem<String>(
-
                         value: item["Id"].toString(),
-
                         child: Text(
-
                           item["Project_Name"],
-
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-
                         ),
-
                       );
-
                     }).toList(),
+
                     onChanged: (value) {
                       setState(() {
                         selectedProjectScheme = value;
@@ -1269,11 +1264,11 @@ class _ApplyTourScreenState
                   children: [
 
                     dateField(
-                      "Date",
-                      startDate,
-                          () => pickDate(true),
+                      "Journey Date",
+                      journeyDate,
+                          () => pickJourneyDate(),
                     ),
-                    if (startDate == null)
+                    if (journeyDate == null)
 
                       const Padding(
 
