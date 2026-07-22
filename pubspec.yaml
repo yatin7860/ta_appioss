@@ -49,6 +49,12 @@ dependencies:
 
   connectivity_plus: ^6.0.5
 
+  lottie: ^3.1.2
+
+  package_info_plus: ^8.0.2
+
+  url_launcher: ^6.3.2
+
   webview_flutter: ^4.10.0
 
   pdf: ^3.11.0
@@ -59,6 +65,7 @@ dependencies:
 
 
   uuid: ^4.5.1
+  flutter_native_splash: ^2.4.7
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
@@ -81,14 +88,30 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon.png"
+
 flutter:
+  uses-material-design: true
+
   assets:
     - assets/logo.png
     - assets/icon.png
+    - assets/animation.json
+    - assets/moving_car.json
+
+flutter_native_splash:
+  color: "#162B63"
+  image: assets/logo.png
+  android: true
+  ios: true
+  fullscreen: true
+
+  android_12:
+    color: "#162B63"
+    image: assets/logo.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
-  uses-material-design: true
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -100,6 +123,8 @@ flutter:
 
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
+
+
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
@@ -120,3 +145,5 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+
