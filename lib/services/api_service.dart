@@ -5,6 +5,50 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
 
+  //================ VERSION CHECK API =================//
+
+  static Future<Map<String, dynamic>?> checkVersion(
+      String version,
+      ) async {
+
+    try {
+
+      var url = Uri.parse(
+        "http://192.168.1.65/prsc_ta/versioncheck",
+      );
+
+      var request = http.MultipartRequest(
+        "POST",
+        url,
+      );
+
+      // Send current app version
+      request.fields["Version"] = version;
+
+      print("========== VERSION CHECK ==========");
+      print("REQUEST URL : $url");
+      print("APP VERSION : $version");
+
+      var response = await request.send();
+
+      var res = await response.stream.bytesToString();
+
+      print("STATUS CODE : ${response.statusCode}");
+      print("RESPONSE : $res");
+
+      if (response.statusCode == 200) {
+        return jsonDecode(res);
+      }
+
+    } catch (e) {
+
+      print("VERSION CHECK ERROR : $e");
+
+    }
+
+    return null;
+  }
+
   // ================= LOGIN API =================
 
   static Future<Map<String, dynamic>?> login(

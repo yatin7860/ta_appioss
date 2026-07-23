@@ -5,6 +5,10 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
+import '../services/api_service.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -15,7 +19,10 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _controller;
-
+  late Animation<double> _titleAnimation;
+  late Animation<double> _lottieAnimation;
+  late Animation<double> _loadingAnimation;
+  late AnimationController _contentController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   late AnimationController _pulseController;
@@ -25,6 +32,8 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _carAnimation;
   late AnimationController _rotationController;
   late Animation<double> _rotationAnimation;
+
+  bool updateRequired = false;
 
   String loadingText = "Initializing...";
   double progress = 0.0;
@@ -44,8 +53,8 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _scaleAnimation = Tween<double>(
-      begin: .8,
-      end: 1,
+      begin: 1.0,
+      end: 1.12,
     ).animate(
       CurvedAnimation(
         parent: _controller,
@@ -68,6 +77,43 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
+    _contentController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _titleAnimation = CurvedAnimation(
+      parent: _contentController,
+      curve: const Interval(
+        0.0,
+        0.40,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    _lottieAnimation = CurvedAnimation(
+      parent: _contentController,
+      curve: const Interval(
+        0.25,
+        0.75,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    _loadingAnimation = CurvedAnimation(
+      parent: _contentController,
+      curve: const Interval(
+        0.60,
+        1.0,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (mounted) {
+        _contentController.forward();
+      }
+    });
     _particleController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
@@ -106,6 +152,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> initializeApp() async {
+
     updateProgress(0.10, "Checking Internet...");
 
     final connectivity = await Connectivity().checkConnectivity();
@@ -117,11 +164,20 @@ class _SplashScreenState extends State<SplashScreen>
 
     await Future.delayed(const Duration(milliseconds: 600));
 
+    //================ VERSION CHECK =================//
+
     updateProgress(0.30, "Checking Version...");
 
     await checkVersion();
 
+    // Stop here if update is required
+    if (updateRequired) {
+      return;
+    }
+
     await Future.delayed(const Duration(milliseconds: 500));
+
+    //================ LOAD USER DATA =================//
 
     updateProgress(0.55, "Loading User Data...");
 
@@ -129,9 +185,13 @@ class _SplashScreenState extends State<SplashScreen>
 
     await Future.delayed(const Duration(milliseconds: 500));
 
+    //================ PREPARING APP =================//
+
     updateProgress(0.80, "Preparing Application...");
 
     await Future.delayed(const Duration(milliseconds: 700));
+
+    //================ FINAL STEP =================//
 
     updateProgress(1.0, "Almost Ready...");
 
@@ -145,7 +205,7 @@ class _SplashScreenState extends State<SplashScreen>
         transitionDuration: const Duration(milliseconds: 800),
         reverseTransitionDuration: const Duration(milliseconds: 500),
         pageBuilder: (context, animation, secondaryAnimation) =>
-         CheckLogin(),
+            CheckLogin(),
         transitionsBuilder: (
             context,
             animation,
@@ -227,11 +287,108 @@ class _SplashScreenState extends State<SplashScreen>
       },
     );
   }
-  Future<void> checkVersion() async {
-    final info = await PackageInfo.fromPlatform();
 
-    debugPrint("Version : ${info.version}");
-    debugPrint("Build : ${info.buildNumber}");
+  void showUpdateDialog(String link) {
+
+    showDialog(
+
+      context: context,
+
+      barrierDismissible: false,
+
+      builder: (context) {
+
+        return AlertDialog(
+
+          title: const Text("Update Required"),
+
+          content: const Text(
+            "A new version of the application is available.\n\nPlease update to continue.",
+          ),
+
+          actions: [
+
+            ElevatedButton(
+
+              onPressed: () async {
+
+                final Uri url = Uri.parse(link);
+
+                if (await canLaunchUrl(url)) {
+
+                  await launchUrl(
+                    url,
+                    mode: LaunchMode.externalApplication,
+                  );
+
+                }
+
+              },
+
+              child: const Text("Update Now"),
+
+            ),
+
+          ],
+
+        );
+
+      },
+
+    );
+
+  }
+  //check version
+
+  Future<void> checkVersion() async {
+
+    try {
+
+      final info = await PackageInfo.fromPlatform();
+
+      String currentVersion = info.version;
+
+      print("CURRENT VERSION : $currentVersion");
+
+      final response =
+      await ApiService.checkVersion(currentVersion);
+
+      print("VERSION API RESPONSE : $response");
+
+      if (response == null) {
+        return;
+      }
+
+      if (response["up_to_date"] == true) {
+
+        print("APP IS UP TO DATE");
+
+        updateRequired = false;
+
+      } else {
+
+        print("UPDATE REQUIRED");
+
+        // ===============================
+        // TEMPORARILY DISABLED FOR TESTING
+        // ===============================
+
+        updateRequired = false;
+
+        // Uncomment these lines when enabling force update
+        // updateRequired = true;
+        // showUpdateDialog(response["link"]);
+
+      }
+
+    } catch (e) {
+
+      print("VERSION CHECK ERROR : $e");
+
+      // Allow app to continue if version check fails
+      updateRequired = false;
+
+    }
 
   }
 
@@ -242,40 +399,40 @@ class _SplashScreenState extends State<SplashScreen>
     _particleController.dispose();
     _carController.dispose();
     _rotationController.dispose();
+    _contentController.dispose();
     super.dispose();
   }
 
   Widget buildLogo(double width) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
+    return ScaleTransition(
+      scale: _scaleAnimation,
       child: ScaleTransition(
         scale: _scaleAnimation,
         child: ScaleTransition(
           scale: _pulseAnimation,
-          child: Container(
-            padding: EdgeInsets.all(width * .045),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withOpacity(.95),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.white.withOpacity(.35),
-                  blurRadius: 40,
-                  spreadRadius: 10,
-                ),
-                BoxShadow(
-                  color: Colors.blueAccent.withOpacity(.25),
-                  blurRadius: 70,
-                  spreadRadius: 25,
-                ),
-              ],
-            ),
-            child: Hero(
-              tag: "logo",
+          child: Hero(
+            tag: "logo",
+            child: Container(
+              width: width * 0.42,
+              height: width * 0.42,
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.25),
+                    blurRadius: 40,
+                    spreadRadius: 8,
+                  ),
+                  BoxShadow(
+                    color: Colors.blueAccent.withOpacity(0.30),
+                    blurRadius: 70,
+                    spreadRadius: 18,
+                  ),
+                ],
+              ),
               child: Image.asset(
-                "assets/logo.png",
-                width: width * .30, // Increased from 0.28 to 0.30
+                "assets/icon.png",
                 fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
               ),
             ),
           ),
@@ -597,33 +754,58 @@ class _SplashScreenState extends State<SplashScreen>
 
                             SizedBox(height: height * .02),
 
-                            buildTitle(width),
+                            FadeTransition(
+                              opacity: _titleAnimation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, .20),
+                                  end: Offset.zero,
+                                ).animate(_titleAnimation),
+                                child: buildTitle(width),
+                              ),
+                            ),
 
                             SizedBox(height: height * .03),
 
-                            buildTravelAnimation(height),
+                            FadeTransition(
+                              opacity: _lottieAnimation,
+                              child: ScaleTransition(
+                                scale: Tween<double>(
+                                  begin: .80,
+                                  end: 1,
+                                ).animate(_lottieAnimation),
+                                child: buildTravelAnimation(height),
+                              ),
+                            ),
 
                             SizedBox(height: height * .02),
 
-                            SizedBox(
-                              width: width * .82,
-                              child: Container(
-                                padding: EdgeInsets.all(width * .05),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(.08),
-                                  borderRadius: BorderRadius.circular(25),
-                                  border: Border.all(
-                                    color: Colors.white24,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(.12),
-                                      blurRadius: 18,
-                                      offset: const Offset(0, 8),
+                            FadeTransition(
+                              opacity: _loadingAnimation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, .20),
+                                  end: Offset.zero,
+                                ).animate(_loadingAnimation),
+                                child: SizedBox(
+                                  width: width * .82,
+                                  child: Container(
+                                    padding: EdgeInsets.all(width * .05),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(.08),
+                                      borderRadius: BorderRadius.circular(25),
+                                      border: Border.all(color: Colors.white24),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(.12),
+                                          blurRadius: 18,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                    child: buildLoading(width),
+                                  ),
                                 ),
-                                child: buildLoading(width),
                               ),
                             ),
 
