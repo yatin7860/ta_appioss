@@ -108,6 +108,8 @@ class _StartTourScreenState extends State<StartTourScreen>
 
     debugPrint("Initializing Tour...");
 
+
+
     await loadInitialLocation();
 
     await restoreTourState();

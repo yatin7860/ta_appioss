@@ -4,6 +4,8 @@ import 'check_login.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// import 'dart:io';
+// import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -109,11 +111,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    Future.delayed(const Duration(milliseconds: 250), () {
-      if (mounted) {
-        _contentController.forward();
-      }
-    });
     _particleController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
@@ -148,11 +145,15 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    initializeApp();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      _contentController.forward();
+      initializeApp();
+    });
   }
 
   Future<void> initializeApp() async {
-
     updateProgress(0.10, "Checking Internet...");
 
     final connectivity = await Connectivity().checkConnectivity();
@@ -162,89 +163,55 @@ class _SplashScreenState extends State<SplashScreen>
       return;
     }
 
-    await Future.delayed(const Duration(milliseconds: 600));
+    // ================= LOAD APP DATA IN PARALLEL =================
 
-    //================ VERSION CHECK =================//
+    updateProgress(0.30, "Loading Application...");
 
-    updateProgress(0.30, "Checking Version...");
+    final prefsFuture = SharedPreferences.getInstance();
+    final versionFuture = checkVersion();
 
-    await checkVersion();
+    await Future.wait([
+      prefsFuture,
+      versionFuture,
+    ]);
 
-    // Stop here if update is required
+    // Stop if update is required
     if (updateRequired) {
       return;
     }
 
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    //================ LOAD USER DATA =================//
-
-    updateProgress(0.55, "Loading User Data...");
-
-    await SharedPreferences.getInstance();
-
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    //================ PREPARING APP =================//
+    // ================= PREPARE APP =================
 
     updateProgress(0.80, "Preparing Application...");
 
-    await Future.delayed(const Duration(milliseconds: 700));
-
-    //================ FINAL STEP =================//
+    // If you need any initialization later, add it here.
 
     updateProgress(1.0, "Almost Ready...");
-
-    await Future.delayed(const Duration(milliseconds: 700));
 
     if (!mounted) return;
 
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 800),
-        reverseTransitionDuration: const Duration(milliseconds: 500),
+        transitionDuration: const Duration(milliseconds: 400),
+        reverseTransitionDuration: const Duration(milliseconds: 250),
         pageBuilder: (context, animation, secondaryAnimation) =>
             CheckLogin(),
-        transitionsBuilder: (
-            context,
-            animation,
-            secondaryAnimation,
-            child,
-            ) {
-          final fadeAnimation = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeInOut,
-          );
-
-          final slideAnimation = Tween<Offset>(
-            begin: const Offset(0.0, 0.08),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            ),
-          );
-
-          final scaleAnimation = Tween<double>(
-            begin: 0.96,
-            end: 1.0,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOut,
-            ),
-          );
-
+        transitionsBuilder:
+            (context, animation, secondaryAnimation, child) {
           return FadeTransition(
-            opacity: fadeAnimation,
+            opacity: animation,
             child: SlideTransition(
-              position: slideAnimation,
-              child: ScaleTransition(
-                scale: scaleAnimation,
-                child: child,
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.05),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOut,
+                ),
               ),
+              child: child,
             ),
           );
         },
@@ -392,6 +359,32 @@ class _SplashScreenState extends State<SplashScreen>
 
   }
 
+  // Future<void> initializeForegroundTask() async {
+  //   FlutterForegroundTask.init(
+  //     androidNotificationOptions: AndroidNotificationOptions(
+  //       channelId: 'tour_tracking_channel',
+  //       channelName: 'Tour Tracking',
+  //       channelDescription: 'Tracking employee location',
+  //       channelImportance: NotificationChannelImportance.HIGH,
+  //       priority: NotificationPriority.HIGH,
+  //       enableVibration: false,
+  //       playSound: false,
+  //       showWhen: true,
+  //     ),
+  //     iosNotificationOptions: const IOSNotificationOptions(
+  //       showNotification: false,
+  //       playSound: false,
+  //     ),
+  //     foregroundTaskOptions: ForegroundTaskOptions(
+  //       eventAction: ForegroundTaskEventAction.repeat(5000),
+  //       autoRunOnBoot: Platform.isAndroid,
+  //       autoRunOnMyPackageReplaced: Platform.isAndroid,
+  //       allowWakeLock: Platform.isAndroid,
+  //       allowWifiLock: Platform.isAndroid,
+  //     ),
+  //   );
+  // }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -404,64 +397,60 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Widget buildLogo(double width) {
-    return ScaleTransition(
-      scale: _scaleAnimation,
+    return Hero(
+      tag: "logo",
       child: ScaleTransition(
-        scale: _scaleAnimation,
-        child: ScaleTransition(
-          scale: _pulseAnimation,
-          child: Hero(
-            tag: "logo",
-            child: Container(
-              width: width * 0.42,
-              height: width * 0.42,
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.25),
-                    blurRadius: 40,
-                    spreadRadius: 8,
-                  ),
-                  BoxShadow(
-                    color: Colors.blueAccent.withOpacity(0.30),
-                    blurRadius: 70,
-                    spreadRadius: 18,
-                  ),
-                ],
-              ),
-              child: Image.asset(
-                "assets/icon.png",
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.high,
-              ),
-            ),
+        scale: _pulseAnimation,
+        child: SizedBox(
+          width: width * 0.25,
+          height: width * 0.25,
+          child: Image.asset(
+            "assets/splash_11.png",
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+            isAntiAlias: true,
           ),
         ),
       ),
     );
   }
   Widget buildParticles() {
-    return AnimatedBuilder(
-      animation: _particleController,
-      builder: (context, child) {
-        return Stack(
-          children: List.generate(20, (index) {
-            return Positioned(
-              left: (index * 27.0) % MediaQuery.of(context).size.width,
-              top: ((_particleController.value *
-                  MediaQuery.of(context).size.height) +
-                  index * 40) %
-                  MediaQuery.of(context).size.height,
-              child: Container(
-                width: 4,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.20),
-                  shape: BoxShape.circle,
-                ),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+
+        if (width <= 0 || height <= 0) {
+          return const SizedBox();
+        }
+
+        return AnimatedBuilder(
+          animation: _particleController,
+          builder: (context, child) {
+            return Stack(
+              children: List.generate(20, (index) {
+                final left = (index * 27.0) % width;
+
+                final top =
+                    ((_particleController.value * height) +
+                        index * 40) %
+                        height;
+
+                return Positioned(
+                  left: left,
+                  top: top,
+                  child: Container(
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(.20),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                );
+              }),
             );
-          }),
+          },
         );
       },
     );
@@ -676,7 +665,7 @@ class _SplashScreenState extends State<SplashScreen>
                 height: width * .65,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(.08),
+                    color: Colors.white.withOpacity(.12),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.blue.withOpacity(.15),

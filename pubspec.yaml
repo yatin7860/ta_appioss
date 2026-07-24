@@ -97,6 +97,8 @@ flutter:
     - assets/icon.png
     - assets/animation.json
     - assets/moving_car.json
+    - assets/splash_11.png
+
 
 
   # The following line ensures that the Material Icons font is
